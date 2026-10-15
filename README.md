@@ -6,7 +6,6 @@
 
 An AI-augmented creative atelier, textile scrap inventory, and circular pattern generator transforming fabric remnants into bespoke zero-waste goods. Powered by **Google Gemini Multimodal Vision**, **TinyFish Real-Time Trend Research**, **PDFKit Editorial Export**, and **React 19 + TypeScript + Express 5**.
 
-🌐 **Live Application**: [https://fleet-khaki-pgud4ad.vercel.app](https://fleet-khaki-pgud4ad.vercel.app)
 
 ---
 
