@@ -16,24 +16,12 @@ import {
 import { UPCYCLING_IDEAS } from '../data/upcyclingIdeas';
 import type { UpcycleIdea } from '../data/upcyclingIdeas';
 import type { FabricSample } from '../data/mockFabrics';
+import { pickCuratedCatalogImage } from '../utils/blueprintAdapter';
 
 export type CatalogSourceFilter = 'ai' | 'all' | 'curated';
 
 const getSafeImageUrl = (idea: UpcycleIdea, currentFabric: FabricSample): string => {
-  if (idea.imageUrl && !idea.imageUrl.includes('pollinations.ai')) {
-    return idea.imageUrl;
-  }
-  if (idea.fallbackImageUrl && !idea.fallbackImageUrl.includes('pollinations.ai')) {
-    return idea.fallbackImageUrl;
-  }
-  const combined = `${currentFabric.name} ${currentFabric.material} ${currentFabric.dominantColor || ''}`.toLowerCase();
-  if (/jute|burlap/i.test(combined)) return '/blueprints/jute-patchwork-tote.jpg';
-  if (/silk|satin/i.test(combined)) return '/blueprints/purple-silk-kimono-shrug.jpg';
-  if (/lace|sheer/i.test(combined)) return '/blueprints/sage-lace-overlay-top.jpg';
-  if (/denim|jean/i.test(combined)) return '/blueprints/denim-chore-jacket.jpg';
-  if (/corduroy|velvet/i.test(combined)) return '/blueprints/terracotta-corduroy-overshirt.jpg';
-  if (/linen|flax/i.test(combined)) return '/blueprints/belgian-slub-linen-weekend-carryall.jpg';
-  return '/blueprints/yellow-cotton-summer-tunic.jpg';
+  return pickCuratedCatalogImage(idea, currentFabric, 0);
 };
 
 const IdeaCardImage: React.FC<{
@@ -141,40 +129,15 @@ export const RecommendationsGallery: React.FC<RecommendationsGalleryProps> = ({
 
   // Dynamically tailor curated ideas so their titles, required materials, and suitability descriptions reflect currentFabric
   const tailoredCuratedIdeas = React.useMemo(() => {
-    return UPCYCLING_IDEAS.map((idea) => {
+    return UPCYCLING_IDEAS.map((idea, idx) => {
       const colorWord = currentFabric.dominantColor ? `${currentFabric.dominantColor} ` : '';
       const matName = currentFabric.material || 'textile remnant';
-
-      // Smart dynamic image for the curated idea matching the current fabric archetype
-      let adaptedImage = idea.imageUrl;
-      const combinedText = `${currentFabric.name} ${currentFabric.material} ${currentFabric.dominantColor || ''}`.toLowerCase();
-      if (/jute|burlap/i.test(combinedText)) {
-        if (/bag|tote|carryall/i.test(idea.title)) adaptedImage = '/blueprints/jute-patchwork-tote.jpg';
-        else if (/crossbody|rig/i.test(idea.title)) adaptedImage = '/blueprints/jute-crossbody-rig.jpg';
-        else if (/shrug|gilet|jacket/i.test(idea.title)) adaptedImage = '/blueprints/jute-sculptural-shrug.jpg';
-        else if (/folio|sleeve/i.test(idea.title)) adaptedImage = '/blueprints/jute-document-folio.jpg';
-        else if (/collar|choker/i.test(idea.title)) adaptedImage = '/blueprints/jute-statement-choker.jpg';
-      } else if (/silk|satin/i.test(combinedText)) {
-        if (/shrug|gilet|jacket/i.test(idea.title)) adaptedImage = '/blueprints/purple-silk-kimono-shrug.jpg';
-        else if (/bag|pouch|wristlet/i.test(idea.title)) adaptedImage = '/blueprints/purple-silk-evening-pouch.jpg';
-        else if (/scarf|bandana/i.test(idea.title)) adaptedImage = '/blueprints/purple-silk-origami-scarf.jpg';
-        else if (/cushion/i.test(idea.title)) adaptedImage = '/blueprints/purple-silk-envelope-cushion.jpg';
-      } else if (/lace|sheer|guipure/i.test(combinedText)) {
-        if (/top|overlay|camisole/i.test(idea.title)) adaptedImage = '/blueprints/sage-lace-overlay-top.jpg';
-        else if (/pouch|bag/i.test(idea.title)) adaptedImage = '/blueprints/green-lace-pouch.jpg';
-        else if (/collar/i.test(idea.title)) adaptedImage = '/blueprints/lace-collar.jpg';
-        else if (/bolero|shrug/i.test(idea.title)) adaptedImage = '/blueprints/lace-bolero.jpg';
-      } else if (/corduroy|velvet/i.test(combinedText)) {
-        if (/jacket|overshirt/i.test(idea.title)) adaptedImage = '/blueprints/terracotta-corduroy-overshirt.jpg';
-        else if (/pouch|folio/i.test(idea.title)) adaptedImage = '/blueprints/corduroy-zip-pouch.jpg';
-      } else if (/denim|jean/i.test(combinedText)) {
-        if (/rig|crossbody/i.test(idea.title)) adaptedImage = '/blueprints/denim-crossbody-rig.jpg';
-        else adaptedImage = '/blueprints/denim-chore-jacket.jpg';
-      }
+      const adaptedImage = pickCuratedCatalogImage(idea, currentFabric, idx);
 
       return {
         ...idea,
         imageUrl: adaptedImage,
+        fallbackImageUrl: adaptedImage,
         fabricRequired: `Approx. ${currentFabric.dimensions.width}×${currentFabric.dimensions.height} ${currentFabric.dimensions.unit} ${colorWord}${matName} remnant`,
         suitabilityReason: `The ${currentFabric.weave || 'woven structure'} and ${currentFabric.texture || 'tactile drape'} of ${colorWord}${matName} (~${currentFabric.weightGsm} GSM) provide optimal zero-waste cutting lines.`,
         materialsNeeded: [

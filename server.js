@@ -693,24 +693,15 @@ function getBestImageForConcept(concept, fabricDetails, index, usedImages = new 
   let candidate = null;
 
   // 1. Jute & Burlap
-  if (archetype === 'jute-burlap' || /jute|burlap/i.test(fabricDetails.fabricType)) {
-    if (/\b(crossbody|chest pack|sling|rig)\b/i.test(title)) candidate = '/blueprints/jute-crossbody-rig.jpg';
-    else if (/\b(shrug|bolero|jacket|gilet)\b/i.test(title)) candidate = '/blueprints/jute-sculptural-shrug.jpg';
-    else if (/\b(folio|sleeve|laptop|document|portfolio)\b/i.test(title)) candidate = '/blueprints/jute-document-folio.jpg';
-    else if (/\b(tote|bag|carryall|market|shopper)\b/i.test(title)) candidate = '/blueprints/jute-patchwork-tote.jpg';
-    else if (/\b(choker|necklace|cravat|collar)\b/i.test(title)) candidate = '/blueprints/jute-statement-choker.jpg';
-    else if (/\b(hat|bucket|cap)\b/i.test(title)) candidate = '/blueprints/jute-bucket-hat.jpg';
-    else if (/\b(apron|smock)\b/i.test(title)) candidate = '/blueprints/jute-maker-apron.jpg';
-
-    if (!candidate) {
-      if (/\b(crossbody|chest rig|chest pack|tactical rig)\b/i.test(text)) candidate = '/blueprints/jute-crossbody-rig.jpg';
-      else if (/\b(shrug|bolero|sculptural shrug)\b/i.test(text)) candidate = '/blueprints/jute-sculptural-shrug.jpg';
-      else if (/\b(laptop sleeve|document folio|laptop folio|portfolio sleeve)\b/i.test(text)) candidate = '/blueprints/jute-document-folio.jpg';
-      else if (/\b(market tote|patchwork tote|carryall bag)\b/i.test(text)) candidate = '/blueprints/jute-patchwork-tote.jpg';
-      else if (/\b(choker|statement choker|cravat collar|neck choker)\b/i.test(text)) candidate = '/blueprints/jute-statement-choker.jpg';
-      else if (/\b(bucket hat|studio hat)\b/i.test(text)) candidate = '/blueprints/jute-bucket-hat.jpg';
-      else if (/\b(maker apron|craft apron|utility apron)\b/i.test(text)) candidate = '/blueprints/jute-maker-apron.jpg';
-    }
+  if (archetype === 'jute-burlap' || /jute|burlap/i.test(`${fabricDetails.fabricType} ${fabricDetails.name || ''}`)) {
+    if (/\b(crossbody|chest pack|sling|rig)\b/i.test(text)) candidate = '/blueprints/jute-crossbody-rig.jpg';
+    else if (/\b(shrug|bolero|jacket|gilet|waistcoat|vest)\b/i.test(text)) candidate = '/blueprints/jute-sculptural-shrug.jpg';
+    else if (/\b(pouch|folio|sleeve|laptop|document|portfolio|case|wallet|pocket)\b/i.test(text)) candidate = '/blueprints/jute-document-folio.jpg';
+    else if (/\b(choker|necklace|cravat|collar|scrunchie|headband|hair|band|tie)\b/i.test(text)) candidate = '/blueprints/jute-statement-choker.jpg';
+    else if (/\b(hat|bucket|cap)\b/i.test(text)) candidate = '/blueprints/jute-bucket-hat.jpg';
+    else if (/\b(apron|smock)\b/i.test(text)) candidate = '/blueprints/jute-maker-apron.jpg';
+    else if (/\b(tote|bag|carryall|market|shopper)\b/i.test(text)) candidate = '/blueprints/jute-patchwork-tote.jpg';
+    else if (/\b(cushion|pillow|mat|table|runner|cover)\b/i.test(text)) candidate = '/blueprints/jute-document-folio.jpg';
   }
 
   // 2. Lace & Sheer
@@ -729,8 +720,8 @@ function getBestImageForConcept(concept, fabricDetails, index, usedImages = new 
   }
 
   // 3. Denim & Workwear
-  else if (archetype === 'denim-workwear') {
-    if (/crossbody|rig|chest|pack|bag|pouch/i.test(text)) {
+  else if (archetype === 'denim-workwear' || /denim|jean/i.test(`${fabricDetails.fabricType} ${fabricDetails.name || ''}`)) {
+    if (/crossbody|rig|chest|pack|bag|pouch|sleeve|case|tote|carryall/i.test(text)) {
       candidate = '/blueprints/denim-crossbody-rig.jpg';
     } else if (colorFamily === 'green-olive') {
       if (/utility|rig|pouch/i.test(text)) candidate = '/blueprints/olive-utility-rig.jpg';
@@ -739,8 +730,6 @@ function getBestImageForConcept(concept, fabricDetails, index, usedImages = new 
       candidate = '/blueprints/belgian-slub-linen-maker-apron.jpg';
     } else if (/gilet|vest|kimono/i.test(text)) {
       candidate = '/blueprints/belgian-slub-linen-kimono-gilet.jpg';
-    } else if (/carryall|tote|weekend/i.test(text)) {
-      candidate = '/blueprints/belgian-slub-linen-weekend-carryall.jpg';
     } else {
       candidate = '/blueprints/denim-chore-jacket.jpg';
     }

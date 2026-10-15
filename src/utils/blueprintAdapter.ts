@@ -495,7 +495,7 @@ export function generateDynamicConceptImageUrl(
 /**
  * Curated catalog image matcher used as a guaranteed offline fallback
  */
-export function pickCuratedCatalogImage(concept: DesignConcept, fabric: FabricSample, index: number): string {
+export function pickCuratedCatalogImage(concept: DesignConcept | any, fabric: FabricSample, index: number): string {
   const colorFamily = detectColorFamily(fabric);
   const archetype = fabric.archetype || detectFabricArchetype(
     fabric.name, 
@@ -503,12 +503,17 @@ export function pickCuratedCatalogImage(concept: DesignConcept, fabric: FabricSa
     fabric.pattern || fabric.weave || ''
   );
 
-  // Safeguard: ONLY accept concept.imageUrl if it genuinely matches this fabric's archetype & color
-  if (concept.imageUrl && (concept.imageUrl.startsWith('http') || concept.imageUrl.startsWith('/'))) {
-    const img = concept.imageUrl.toLowerCase();
-    const isBadUnsplash = /photo-1583847268964|photo-1553062407|photo-1490481651871/i.test(img);
+  const text = `${concept.title || ''} ${concept.subtitle || ''} ${concept.description || ''} ${concept.product_type || ''} ${concept.category || ''}`.toLowerCase();
 
-    if (!isBadUnsplash) {
+  // Safeguard: ONLY accept an existing concept.imageUrl if it genuinely matches this fabric's archetype
+  if (concept.imageUrl && typeof concept.imageUrl === 'string' && (concept.imageUrl.startsWith('http') || concept.imageUrl.startsWith('/'))) {
+    const img = concept.imageUrl.toLowerCase();
+    const isBad = /photo-1583847268964|photo-1553062407|photo-1490481651871|pollinations\.ai/i.test(img);
+
+    if (!isBad) {
+      if ((archetype === 'jute-burlap' || /jute|burlap/i.test(`${fabric.name} ${fabric.material}`)) && img.includes('jute')) {
+        return concept.imageUrl;
+      }
       if (archetype === 'lace-sheer' && (img.includes('lace') || img.includes('sage') || img.includes('green-lace'))) {
         return concept.imageUrl;
       }
@@ -518,9 +523,8 @@ export function pickCuratedCatalogImage(concept: DesignConcept, fabric: FabricSa
       if (archetype === 'wool-tweed' && (img.includes('wool') || img.includes('tweed'))) {
         return concept.imageUrl;
       }
-      if (archetype === 'denim-workwear') {
-        if (colorFamily === 'green-olive' && img.includes('olive')) return concept.imageUrl;
-        if (colorFamily !== 'green-olive' && img.includes('denim')) return concept.imageUrl;
+      if (archetype === 'denim-workwear' && (img.includes('denim') || (colorFamily === 'green-olive' && img.includes('olive')))) {
+        return concept.imageUrl;
       }
       if ((archetype === 'silk-satin' || colorFamily === 'purple-silk') && (img.includes('purple-silk') || img.includes('silk'))) {
         return concept.imageUrl;
@@ -528,41 +532,29 @@ export function pickCuratedCatalogImage(concept: DesignConcept, fabric: FabricSa
       if ((archetype === 'cotton-handloom' || colorFamily === 'yellow-gold') && img.includes('yellow-cotton')) {
         return concept.imageUrl;
       }
-      if ((archetype === 'linen-slub' || colorFamily === 'white-light' || colorFamily === 'wool-earth') && (img.includes('belgian-slub-linen') || img.includes('linen') || img.includes('jute') || img.includes('burlap'))) {
+      if (archetype === 'linen-slub' && img.includes('belgian-slub-linen')) {
         return concept.imageUrl;
       }
     }
   }
 
-  const title = (concept.title || '').toLowerCase();
-  const text = `${concept.title} ${concept.subtitle || ''} ${concept.description || ''}`.toLowerCase();
-
   // 0. Jute & Burlap Dedicated Archetype
   if (archetype === 'jute-burlap' || /jute|burlap/i.test(`${fabric.name} ${fabric.material} ${fabric.dominantColor || ''}`)) {
-    // Check title first for high-confidence precision match
-    if (/\b(crossbody|rig|chest pack|sling)\b/i.test(title)) return '/blueprints/jute-crossbody-rig.jpg';
-    if (/\b(shrug|bolero|jacket|gilet)\b/i.test(title)) return '/blueprints/jute-sculptural-shrug.jpg';
-    if (/\b(folio|sleeve|laptop|document|portfolio)\b/i.test(title)) return '/blueprints/jute-document-folio.jpg';
-    if (/\b(choker|necklace|cravat|collar)\b/i.test(title)) return '/blueprints/jute-statement-choker.jpg';
-    if (/\b(hat|bucket|cap)\b/i.test(title)) return '/blueprints/jute-bucket-hat.jpg';
-    if (/\b(apron|smock)\b/i.test(title)) return '/blueprints/jute-maker-apron.jpg';
-    if (/\b(tote|bag|carryall|market|shopper)\b/i.test(title)) return '/blueprints/jute-patchwork-tote.jpg';
-
-    // Broader text match with strict word boundaries
-    if (/\b(crossbody|chest rig|chest pack|tactical rig)\b/i.test(text)) return '/blueprints/jute-crossbody-rig.jpg';
-    if (/\b(shrug|bolero|sculptural shrug)\b/i.test(text)) return '/blueprints/jute-sculptural-shrug.jpg';
-    if (/\b(laptop sleeve|document folio|laptop folio|portfolio sleeve)\b/i.test(text)) return '/blueprints/jute-document-folio.jpg';
-    if (/\b(choker|statement choker|cravat collar|neck choker)\b/i.test(text)) return '/blueprints/jute-statement-choker.jpg';
-    if (/\b(bucket hat|studio hat)\b/i.test(text)) return '/blueprints/jute-bucket-hat.jpg';
-    if (/\b(maker apron|craft apron|utility apron)\b/i.test(text)) return '/blueprints/jute-maker-apron.jpg';
-    if (/\b(market tote|patchwork tote|carryall bag)\b/i.test(text)) return '/blueprints/jute-patchwork-tote.jpg';
+    if (/\b(crossbody|rig|chest pack|sling)\b/i.test(text)) return '/blueprints/jute-crossbody-rig.jpg';
+    if (/\b(shrug|bolero|jacket|gilet|waistcoat|vest)\b/i.test(text)) return '/blueprints/jute-sculptural-shrug.jpg';
+    if (/\b(pouch|sleeve|folio|laptop|document|portfolio|case|wallet|pocket)\b/i.test(text)) return '/blueprints/jute-document-folio.jpg';
+    if (/\b(choker|necklace|cravat|collar|scrunchie|headband|hair|band|tie)\b/i.test(text)) return '/blueprints/jute-statement-choker.jpg';
+    if (/\b(hat|bucket|cap)\b/i.test(text)) return '/blueprints/jute-bucket-hat.jpg';
+    if (/\b(apron|smock)\b/i.test(text)) return '/blueprints/jute-maker-apron.jpg';
+    if (/\b(tote|bag|carryall|market|shopper)\b/i.test(text)) return '/blueprints/jute-patchwork-tote.jpg';
+    if (/\b(cushion|pillow|mat|table|runner|cover)\b/i.test(text)) return '/blueprints/jute-document-folio.jpg';
 
     const juteImages = [
+      '/blueprints/jute-patchwork-tote.jpg',
+      '/blueprints/jute-document-folio.jpg',
       '/blueprints/jute-statement-choker.jpg',
       '/blueprints/jute-crossbody-rig.jpg',
       '/blueprints/jute-sculptural-shrug.jpg',
-      '/blueprints/jute-document-folio.jpg',
-      '/blueprints/jute-patchwork-tote.jpg',
       '/blueprints/jute-bucket-hat.jpg',
       '/blueprints/jute-maker-apron.jpg'
     ];
