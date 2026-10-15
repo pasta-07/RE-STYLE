@@ -9,7 +9,8 @@ import {
   Globe,
   ExternalLink,
   Sparkles,
-  TrendingUp
+  TrendingUp,
+  Loader2
 } from 'lucide-react';
 import type { FabricSample } from '../data/mockFabrics';
 import { UPCYCLING_IDEAS } from '../data/upcyclingIdeas';
@@ -34,34 +35,26 @@ export const AIAnalysisModal: React.FC<AIAnalysisModalProps> = ({
   liveTrends,
   isAiLoading,
 }) => {
-  const [phase, setPhase] = useState<'scanning' | 'complete'>('scanning');
   const [scanStepIndex, setScanStepIndex] = useState(0);
+  const isScanning = Boolean(isAiLoading);
 
   const scanSteps = [
     'Evaluating uploaded remnant outline & geometric dimensions...',
     'Querying TinyFish live sustainable fashion trends...',
-    'Synthesizing commercial concepts with Gemini LLM...',
-    'Calculating fabric consumption & zero-waste impact...',
+    'Synthesizing bespoke zero-waste silhouettes with Gemini LLM...',
+    'Calculating fabric consumption, margin economics & zero-waste impact...',
   ];
 
-  // Reset scan state and run interval when opened
+  // Cycle scanning steps while live AI synthesis is running
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen || !isAiLoading) return;
 
     const interval = setInterval(() => {
-      setScanStepIndex((prev) => {
-        if (prev < scanSteps.length - 1) {
-          return prev + 1;
-        } else {
-          clearInterval(interval);
-          setTimeout(() => setPhase('complete'), 500);
-          return prev;
-        }
-      });
-    }, 700);
+      setScanStepIndex((prev) => (prev + 1) % scanSteps.length);
+    }, 1200);
 
     return () => clearInterval(interval);
-  }, [isOpen, scanSteps.length]);
+  }, [isOpen, isAiLoading, scanSteps.length]);
 
   // Handle Escape key to close dialog
   useEffect(() => {
@@ -115,7 +108,7 @@ export const AIAnalysisModal: React.FC<AIAnalysisModalProps> = ({
         {/* Content Body - Scrollable */}
         <div className="p-6 sm:p-8 space-y-6 overflow-y-auto flex-1">
           
-          {phase === 'scanning' ? (
+          {isScanning ? (
             <div className="space-y-6 text-center py-4">
               {/* Scanning visual box with animated laser beam line */}
               <div className="relative w-48 h-48 sm:w-56 sm:h-56 mx-auto rounded-2xl overflow-hidden border-2 border-navy/20 shadow-warm bg-paper-200">
@@ -161,7 +154,7 @@ export const AIAnalysisModal: React.FC<AIAnalysisModalProps> = ({
             <div className="space-y-6 animate-fadeIn">
               
               {/* Top Banner */}
-              {aiDesigns && aiDesigns.length > 0 ? (
+              {aiDesigns && aiDesigns.length > 0 && !isAiLoading ? (
                 <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-xl bg-emerald-700 text-white flex items-center justify-center flex-shrink-0">
@@ -172,14 +165,38 @@ export const AIAnalysisModal: React.FC<AIAnalysisModalProps> = ({
                         Live AI Sustainable Concepts Ready
                       </h4>
                       <p className="text-xs text-charcoal-muted">
-                        Generated 5 commercially viable products using TinyFish search trends & Gemini LLM.
+                        Generated {aiDesigns.length} commercially viable products using TinyFish search trends & Gemini LLM.
                       </p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2 self-start sm:self-auto">
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-mono font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-mono font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-2xs">
                       <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
                       Live AI Active
+                    </span>
+                  </div>
+                </div>
+              ) : isAiLoading ? (
+                <div className="p-4 rounded-2xl bg-amber-50/80 border border-amber-200 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-amber-600 text-white flex items-center justify-center flex-shrink-0">
+                      <Loader2 className="w-5 h-5 text-amber-200 animate-spin" />
+                    </div>
+                    <div>
+                      <h4 className="font-serif text-base font-bold text-navy flex items-center gap-2">
+                        <span>Synthesizing Live AI Blueprints</span>
+                        <span className="w-2 h-2 rounded-full bg-coral animate-ping" />
+                      </h4>
+                      <p className="text-xs text-charcoal-muted">
+                        Querying TinyFish live search trends and drafting bespoke zero-waste patterns...
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-[10px] font-mono uppercase tracking-wider text-charcoal-muted block">Status</span>
+                    <span className="text-xs font-mono font-bold text-amber-800 flex items-center gap-1">
+                      <Loader2 className="w-3 h-3 animate-spin text-coral" />
+                      Synthesizing...
                     </span>
                   </div>
                 </div>
@@ -201,7 +218,7 @@ export const AIAnalysisModal: React.FC<AIAnalysisModalProps> = ({
                   <div className="text-right">
                     <span className="text-[10px] font-mono uppercase tracking-wider text-charcoal-muted block">Status</span>
                     <span className="text-xs font-mono font-bold text-navy">
-                      {isAiLoading ? 'Synthesizing AI...' : 'Demo Mode'}
+                      Curated Archive
                     </span>
                   </div>
                 </div>
@@ -270,7 +287,7 @@ export const AIAnalysisModal: React.FC<AIAnalysisModalProps> = ({
                         <p className="text-xs text-charcoal leading-relaxed mb-3">
                           {concept.description}
                         </p>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] font-mono bg-paper-100 p-2.5 rounded-xl border border-navy/10">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] font-mono bg-paper-100 p-2.5 rounded-xl border border-navy/10 mb-2">
                           <div>
                             <span className="text-charcoal-muted block">Fabric Usage:</span>
                             <span className="font-bold text-navy">{concept.estimatedFabricUsage}</span>
@@ -279,6 +296,26 @@ export const AIAnalysisModal: React.FC<AIAnalysisModalProps> = ({
                             <span className="text-charcoal-muted block">Waste Reduction:</span>
                             <span className="font-bold text-emerald-700">{concept.wasteReductionImpact}</span>
                           </div>
+                        </div>
+
+                        <div className="flex justify-end">
+                          <button
+                            type="button"
+                            disabled={Boolean(isAiLoading)}
+                            onClick={() => {
+                              if (isAiLoading) return;
+                              onClose();
+                              onViewRecommendations();
+                            }}
+                            className={`text-xs font-semibold flex items-center gap-1 ${
+                              isAiLoading
+                                ? 'text-charcoal-muted cursor-not-allowed opacity-60'
+                                : 'text-navy hover:text-coral transition-colors cursor-pointer'
+                            }`}
+                          >
+                            <span>Explore Blueprint in Catalog</span>
+                            <ArrowRight className="w-3.5 h-3.5" />
+                          </button>
                         </div>
                       </div>
                     ))}
@@ -343,17 +380,36 @@ export const AIAnalysisModal: React.FC<AIAnalysisModalProps> = ({
                 </div>
               </div>
 
-              {/* CTA to view recommendations */}
+              {/* CTA to view recommendations - disabled during AI synthesis */}
               <button
                 type="button"
+                disabled={Boolean(isAiLoading)}
                 onClick={() => {
+                  if (isAiLoading) return;
                   onClose();
                   onViewRecommendations();
                 }}
-                className="w-full py-4 px-6 rounded-2xl bg-navy text-paper text-base font-semibold shadow-warm hover:bg-navy-700 transition-all duration-300 flex items-center justify-center gap-2 active:scale-98 focus:outline-none focus-visible:ring-2 focus-visible:ring-denim"
+                className={`w-full py-4 px-6 rounded-2xl text-base font-semibold shadow-warm transition-all duration-300 flex items-center justify-center gap-2.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-denim ${
+                  isAiLoading
+                    ? 'bg-navy/60 text-paper/70 cursor-not-allowed opacity-80'
+                    : 'bg-navy hover:bg-navy-700 text-paper hover:shadow-warm-lg active:scale-98 cursor-pointer'
+                }`}
               >
-                <span>Explore Matched Upcycling Blueprints</span>
-                <ArrowRight className="w-4 h-4 text-coral" />
+                {isAiLoading ? (
+                  <>
+                    <Loader2 className="w-5 h-5 text-coral animate-spin" />
+                    <span>Synthesizing Live AI Blueprints (Please wait...)</span>
+                  </>
+                ) : (
+                  <>
+                    <span>
+                      {aiDesigns && aiDesigns.length > 0
+                        ? `Explore ${aiDesigns.length} Matched Upcycling Blueprints`
+                        : 'Explore Matched Upcycling Blueprints'}
+                    </span>
+                    <ArrowRight className="w-4 h-4 text-coral" />
+                  </>
+                )}
               </button>
 
             </div>

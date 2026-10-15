@@ -26,6 +26,8 @@ RUN npm ci --omit=dev
 # Copy built frontend assets and backend code
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/server.js ./server.js
+COPY --from=builder /app/server ./server
+COPY --from=builder /app/data ./data
 COPY --from=builder /app/.env.example ./.env.example
 
 EXPOSE 5000

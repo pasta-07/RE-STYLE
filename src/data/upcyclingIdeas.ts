@@ -5,22 +5,54 @@ export interface StepInstruction {
   tip?: string;
 }
 
+export type BlueprintCategory = 'Apparel & Garments' | 'Bags & Carry' | 'Accessories' | 'Home Goods' | 'Art & Living';
+
 export interface UpcycleIdea {
   id: string;
+  design_id?: string;
   title: string;
   subtitle: string;
-  category: 'Bags & Carry' | 'Accessories' | 'Home Goods' | 'Art & Living';
+  product_type?: string;
+  category: BlueprintCategory;
   difficulty: 'Beginner' | 'Intermediate' | 'Artisan';
   timeEstimate: string;
   fabricRequired: string;
+  fabric_requirements?: {
+    fabric_type?: string;
+    colour?: string;
+    pattern?: string;
+    quantity_required_meters?: string;
+  };
   suitabilityReason: string;
+  design_rationale?: string;
   imageUrl: string;
+  image_url?: string;
+  image_status?: 'pending' | 'success' | 'failed' | 'needs_review';
+  generation_status?: 'pending' | 'success' | 'failed' | 'needs_review';
+  fallbackImageUrl?: string;
   matchScore: number;
   tags: string[];
   materialsNeeded: string[];
   toolsNeeded: string[];
   steps: StepInstruction[];
   patternNotes: string;
+  isAiGenerated?: boolean;
+  productionCost?: string;
+  sellingPrice?: string;
+  wasteReductionImpact?: string;
+  sourcesUsed?: string[];
+  trend_evidence?: string[];
+  feasibility?: {
+    status: 'feasible' | 'tight' | 'insufficient_material' | 'unknown';
+    confidence?: string;
+    notes: string;
+  };
+  image_validation?: {
+    passed: boolean;
+    confidence?: string;
+    notes: string;
+  };
+  rawConcept?: any;
 }
 
 export const UPCYCLING_IDEAS: UpcycleIdea[] = [
@@ -33,7 +65,7 @@ export const UPCYCLING_IDEAS: UpcycleIdea[] = [
     timeEstimate: '2.5 Hours',
     fabricRequired: 'Approx. 40 x 30 cm remnant (or spliced strips)',
     suitabilityReason: 'The weight and weave provide ideal structural integrity for bag panels without requiring heavy fusible interfacing.',
-    imageUrl: 'https://images.unsplash.com/photo-1544816155-12df9643f363?auto=format&fit=crop&w=900&q=80',
+    imageUrl: '/blueprints/belgian-slub-linen-weekend-carryall.jpg',
     matchScore: 98,
     tags: ['denim', 'cotton', 'sturdy', 'twill', 'durable'],
     materialsNeeded: [
@@ -90,7 +122,7 @@ export const UPCYCLING_IDEAS: UpcycleIdea[] = [
     timeEstimate: '1.5 Hours',
     fabricRequired: 'Approx. 35 x 25 cm scrap',
     suitabilityReason: 'Weave density holds sashiko thread firmly in place without puckering, creating beautiful shadow ridges.',
-    imageUrl: 'https://images.unsplash.com/photo-1590874103328-eac38a683ce7?auto=format&fit=crop&w=900&q=80',
+    imageUrl: '/blueprints/corduroy-zip-pouch.jpg',
     matchScore: 95,
     tags: ['denim', 'cotton', 'corduroy', 'protective'],
     materialsNeeded: [
@@ -140,7 +172,7 @@ export const UPCYCLING_IDEAS: UpcycleIdea[] = [
     timeEstimate: '45 Minutes',
     fabricRequired: 'Approx. 10 x 50 cm narrow scrap strip',
     suitabilityReason: 'The natural softness and grain catch light elegantly, making small ruffled accessories feel luxurious.',
-    imageUrl: 'https://images.unsplash.com/photo-1582095133179-bfd08e2fc6b3?auto=format&fit=crop&w=900&q=80',
+    imageUrl: '/blueprints/purple-silk-origami-scarf.jpg',
     matchScore: 92,
     tags: ['linen', 'corduroy', 'cotton', 'small scraps', 'quick'],
     materialsNeeded: [
@@ -189,7 +221,7 @@ export const UPCYCLING_IDEAS: UpcycleIdea[] = [
     timeEstimate: '2 Hours',
     fabricRequired: 'Approx. 45 x 45 cm (or two 45 x 25 cm remnants)',
     suitabilityReason: 'Textile slub and matte finish lend an organic, tactile presence to living room sofas and reading nooks.',
-    imageUrl: 'https://images.unsplash.com/photo-1584100936595-c0654b55a2e2?auto=format&fit=crop&w=900&q=80',
+    imageUrl: '/blueprints/yellow-cotton-envelope-cushion.jpg',
     matchScore: 94,
     tags: ['linen', 'cotton', 'decorative', 'home'],
     materialsNeeded: [
@@ -237,7 +269,7 @@ export const UPCYCLING_IDEAS: UpcycleIdea[] = [
     timeEstimate: '1 Hour',
     fabricRequired: 'Approx. 30 x 40 cm scrap (or varied collage scraps)',
     suitabilityReason: 'Natural frayed edges and artisanal textures transform beautifully into gallery-worthy interior wall art.',
-    imageUrl: 'https://images.unsplash.com/photo-1513519245088-0e12902e5a38?auto=format&fit=crop&w=900&q=80',
+    imageUrl: '/blueprints/belgian-slub-linen-kimono-gilet.jpg',
     matchScore: 91,
     tags: ['linen', 'cotton', 'art', 'decor', 'frayed'],
     materialsNeeded: [
@@ -284,7 +316,7 @@ export const UPCYCLING_IDEAS: UpcycleIdea[] = [
     timeEstimate: '1 Hour',
     fabricRequired: 'Approx. 25 x 25 cm scrap (yields 4 mini squares)',
     suitabilityReason: 'Absorbent weave catches mug moisture while withstanding regular washing.',
-    imageUrl: 'https://images.unsplash.com/photo-1584992236310-6edddc08acff?auto=format&fit=crop&w=900&q=80',
+    imageUrl: '/blueprints/green-lace-pouch.jpg',
     matchScore: 96,
     tags: ['linen', 'cotton', 'small scraps', 'easy'],
     materialsNeeded: [
@@ -331,7 +363,7 @@ export const UPCYCLING_IDEAS: UpcycleIdea[] = [
     timeEstimate: '1 Hour',
     fabricRequired: 'Approx. 20 x 15 cm small scrap',
     suitabilityReason: 'Structured fabric holds crisp folded edges and resists daily pocket friction.',
-    imageUrl: 'https://images.unsplash.com/photo-1627123424574-724758594e93?auto=format&fit=crop&w=900&q=80',
+    imageUrl: '/blueprints/denim-crossbody-rig.jpg',
     matchScore: 90,
     tags: ['corduroy', 'denim', 'accessories', 'pocket'],
     materialsNeeded: [

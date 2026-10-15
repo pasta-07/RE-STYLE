@@ -10,6 +10,12 @@ export interface FabricSample {
   texture: string;
   imageUrl: string;
   tagline: string;
+  dominantColor?: string;
+  colorFamily?: string;
+  pattern?: string;
+  structuralBody?: string;
+  tensileDrape?: string;
+  archetype?: string;
 }
 
 export const SAMPLE_FABRICS: FabricSample[] = [
@@ -21,6 +27,9 @@ export const SAMPLE_FABRICS: FabricSample[] = [
     weightGsm: 340,
     condition: 'Gently Washed',
     dimensions: { width: 45, height: 35, unit: 'cm' },
+    dominantColor: 'Deep Indigo',
+    colorFamily: 'blue-navy',
+    pattern: '3x1 Twill Grain',
     colorPalette: [
       { name: 'Deep Indigo', hex: '#253247' },
       { name: 'Washed Denim', hex: '#496E8A' },

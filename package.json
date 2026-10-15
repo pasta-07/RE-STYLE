@@ -9,6 +9,7 @@
     "dev:all": "concurrently -n \"BACKEND,FRONTEND\" -c \"magenta,cyan\" \"npm run server\" \"npm run dev\"",
     "start": "node server.js",
     "build": "tsc -b && vite build",
+    "test": "node tests/re_style_2.test.js",
     "lint": "oxlint",
     "preview": "vite preview"
   },
@@ -21,6 +22,7 @@
     "framer-motion": "^14.1.0",
     "lucide-react": "^1.55.0",
     "node-fetch": "^3.3.2",
+    "pdfkit": "^0.20.2",
     "react": "^19.2.8",
     "react-dom": "^19.2.8"
   },
