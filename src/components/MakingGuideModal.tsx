@@ -11,7 +11,11 @@ import {
   Printer, 
   Compass,
   Bookmark,
-  BookmarkCheck
+  BookmarkCheck,
+  Layers,
+  AlertTriangle,
+  CheckCircle2,
+  Sliders
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import type { UpcycleIdea, StepInstruction } from '../data/upcyclingIdeas';
@@ -21,6 +25,7 @@ import {
   saveProject, 
   createFabric 
 } from '../api/reStyleApi';
+import { evaluateFabricFeasibility, type CuttingLayoutResult, BLUEPRINT_PIECE_REGISTRY } from '../utils/fabricFeasibility';
 
 interface MakingGuideModalProps {
   idea: UpcycleIdea | any | null;
@@ -60,6 +65,10 @@ export const MakingGuideModal: React.FC<MakingGuideModalProps> = ({
   }, [idea, onClose]);
 
   if (!idea) return null;
+
+  // Single shared source of truth for feasibility & cutting layout
+  const feasibility: CuttingLayoutResult = idea.rawFeasibility || evaluateFabricFeasibility(idea, fabric);
+  const registryEntry = BLUEPRINT_PIECE_REGISTRY[idea.id] || BLUEPRINT_PIECE_REGISTRY['idea-quilted-sleeve'];
 
   const steps: StepInstruction[] = Array.isArray(idea.steps) ? idea.steps : [];
   const safeStepIndex = Math.min(Math.max(0, currentStepIndex), Math.max(0, steps.length - 1));
@@ -141,14 +150,14 @@ export const MakingGuideModal: React.FC<MakingGuideModalProps> = ({
           completed: completedSteps.includes(idx)
         })),
         cuttingPlan: idea.cuttingPlan || {
-          patternPieces: [],
+          patternPieces: registryEntry.pieces,
           seamAllowance: '1.0 cm included',
           grainline: 'Straight warp grain',
           cuttingOrder: ['Main body', 'Accents'],
-          remainingFabricNotes: idea.patternNotes || 'Zero-waste tessellation'
+          remainingFabricNotes: feasibility.remainingNotes
         },
-        suitabilityReason: idea.suitabilityReason,
-        matchScore: idea.matchScore || 90
+        suitabilityReason: feasibility.suitabilityReason,
+        matchScore: feasibility.matchScore
       });
 
       setIsSaved(true);
@@ -187,8 +196,18 @@ export const MakingGuideModal: React.FC<MakingGuideModalProps> = ({
     }
   };
 
-  const cuttingPlan = idea.cuttingPlan;
-  const patternPieces = cuttingPlan?.patternPieces || [];
+  const patternPieces = (idea.cuttingPlan?.patternPieces && idea.cuttingPlan.patternPieces.length > 0)
+    ? idea.cuttingPlan.patternPieces
+    : registryEntry.pieces;
+
+  const dynamicTools = [
+    `Sewing machine (${feasibility.fabricSpecs.needle}) or hand needle`,
+    feasibility.fabricSpecs.thread,
+    feasibility.fabricSpecs.presserFoot,
+    'Fabric shears or rotary cutter',
+    'Tailor chalk and clear ruler',
+    'Steam iron and pressing cloth'
+  ];
 
   return (
     <div 
@@ -262,11 +281,16 @@ export const MakingGuideModal: React.FC<MakingGuideModalProps> = ({
                 <span className="text-xs font-mono text-coral font-semibold">
                   {idea.difficulty} • {idea.timeEstimate}
                 </span>
-                {idea.matchScore && (
-                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
-                    {idea.matchScore}% Match
-                  </span>
-                )}
+                {/* Score strictly synchronized with catalog card */}
+                <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold border ${
+                  feasibility.matchScore >= 85 
+                    ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                    : feasibility.matchScore >= 60 
+                    ? 'bg-indigo-100 text-indigo-800 border-indigo-300'
+                    : 'bg-rose-100 text-rose-800 border-rose-300'
+                }`}>
+                  {feasibility.matchScore >= 50 ? `${feasibility.matchScore}% Surface Fit` : 'Does Not Fit Remnant'}
+                </span>
               </div>
               <h2 className="font-serif-title text-2xl sm:text-3xl font-bold text-navy">
                 {idea.title}
@@ -278,7 +302,7 @@ export const MakingGuideModal: React.FC<MakingGuideModalProps> = ({
               )}
 
               <p className="text-xs sm:text-sm text-charcoal-muted mt-2 max-w-xl leading-relaxed">
-                {idea.suitabilityReason}
+                {feasibility.suitabilityReason}
               </p>
             </div>
 
@@ -318,8 +342,28 @@ export const MakingGuideModal: React.FC<MakingGuideModalProps> = ({
                 <span className="text-[10px] uppercase font-mono text-charcoal-muted block">Remnant Source</span>
                 <p className="font-serif font-bold text-navy truncate max-w-[130px]">{fabric.name}</p>
                 <p className="text-[11px] text-coral font-mono">
-                  {fabric.dimensions?.length || fabric.dimensions?.width}×{fabric.dimensions?.width || fabric.dimensions?.height} {fabric.dimensions?.unit || 'cm'}
+                  {fabric.dimensions?.width}×{fabric.dimensions?.height || fabric.dimensions?.length} {fabric.dimensions?.unit || 'cm'} (~{fabric.weightGsm || 200} GSM)
                 </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Feasibility Alert Banner */}
+          <div className={`p-4 rounded-2xl border text-xs font-mono flex items-start gap-3 ${feasibility.statusBadgeColor}`}>
+            {feasibility.status === 'feasible' ? (
+              <CheckCircle2 className="w-5 h-5 text-emerald-700 flex-shrink-0 mt-0.5" />
+            ) : feasibility.status === 'tight' ? (
+              <AlertTriangle className="w-5 h-5 text-amber-700 flex-shrink-0 mt-0.5" />
+            ) : feasibility.status === 'requires_piecing' ? (
+              <Layers className="w-5 h-5 text-indigo-700 flex-shrink-0 mt-0.5" />
+            ) : (
+              <AlertTriangle className="w-5 h-5 text-rose-700 flex-shrink-0 mt-0.5" />
+            )}
+            <div className="space-y-1">
+              <div className="font-bold text-sm">{feasibility.statusLabel}</div>
+              <p className="leading-relaxed opacity-95">{feasibility.explanation}</p>
+              <div className="text-[11px] opacity-80 pt-1">
+                Remnant Area: {feasibility.remnantAreaCm2} cm² • Consumed: ~{feasibility.consumedAreaCm2} cm² ({feasibility.utilizationPercent}% utilization) • Offcut remainder: ~{feasibility.remainingAreaCm2} cm²
               </div>
             </div>
           </div>
@@ -332,19 +376,19 @@ export const MakingGuideModal: React.FC<MakingGuideModalProps> = ({
                 Zero-Waste Geometric Cutting Blueprint
               </h3>
               <span className="text-[11px] font-mono text-navy bg-paper px-2.5 py-0.5 rounded-full font-semibold border border-navy/10">
-                Required: {idea.fabricRequired || 'Calculated from pattern'}
+                Required Remnant: {idea.fabricRequired || `${feasibility.remnantWidthCm}×${feasibility.remnantHeightCm} cm`}
               </span>
             </div>
             
             <p className="text-xs text-charcoal leading-relaxed font-mono bg-paper p-3.5 rounded-xl border border-navy/10">
-              📐 Pattern Plan: {idea.patternNotes || cuttingPlan?.remainingFabricNotes || 'Deterministic tessellation designed to minimize offcuts.'}
+              📐 Pattern Plan: {idea.patternNotes || feasibility.remainingNotes}
             </p>
 
-            {/* Pattern Pieces Table */}
+            {/* Pattern Pieces Table with Explicit Supply Source */}
             {patternPieces.length > 0 && (
               <div className="overflow-x-auto bg-paper rounded-xl border border-navy/10 p-3">
                 <span className="text-[10px] font-mono uppercase tracking-wider text-charcoal-muted block mb-2 font-bold">
-                  Technical Pattern Pieces Layout
+                  Technical Pattern Pieces Layout & Supply Sourcing
                 </span>
                 <table className="w-full text-xs font-mono text-left">
                   <thead>
@@ -352,26 +396,61 @@ export const MakingGuideModal: React.FC<MakingGuideModalProps> = ({
                       <th className="py-1">Piece Name</th>
                       <th className="py-1">Qty</th>
                       <th className="py-1">Dimensions</th>
-                      <th className="py-1">Orientation / Notes</th>
+                      <th className="py-1">Supply Source</th>
+                      <th className="py-1">Notes / Grainline</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-navy/5">
-                    {patternPieces.map((p: any, idx: number) => (
-                      <tr key={idx} className="hover:bg-paper-50">
-                        <td className="py-1.5 font-bold text-navy">{p.name}</td>
-                        <td className="py-1.5">{p.count}</td>
-                        <td className="py-1.5">{p.width} × {p.height} {p.unit}</td>
-                        <td className="py-1.5 text-charcoal-muted">{p.notes || 'Straight grain cut'}</td>
-                      </tr>
-                    ))}
+                    {patternPieces.map((p: any, idx: number) => {
+                      const isRemnant = p.source === 'remnant' || !p.source;
+                      return (
+                        <tr key={idx} className="hover:bg-paper-50">
+                          <td className="py-1.5 font-bold text-navy">{p.name}</td>
+                          <td className="py-1.5">{p.count}</td>
+                          <td className="py-1.5">{p.width} × {p.height} {p.unit || 'cm'}</td>
+                          <td className="py-1.5">
+                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                              isRemnant ? 'bg-emerald-100 text-emerald-800' : 'bg-purple-100 text-purple-800'
+                            }`}>
+                              {isRemnant ? 'Your Remnant' : 'Separate Supply'}
+                            </span>
+                          </td>
+                          <td className="py-1.5 text-charcoal-muted">{p.notes || 'Straight grain cut'}</td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
                 <div className="mt-2 text-[10px] text-charcoal-muted flex items-center justify-between">
-                  <span>Seam Allowance: {cuttingPlan?.seamAllowance || '1.0 cm included'}</span>
-                  <span>Grainline: {cuttingPlan?.grainline || 'Parallel to warp'}</span>
+                  <span>Seam Allowance: {idea.cuttingPlan?.seamAllowance || '1.0 cm included'}</span>
+                  <span>Grainline: {idea.cuttingPlan?.grainline || 'Parallel to warp'}</span>
                 </div>
               </div>
             )}
+          </div>
+
+          {/* Dynamic Fabric Sewing Specifications Callout */}
+          <div className="p-4 sm:p-5 rounded-2xl bg-paper-100 border border-navy/15 space-y-3">
+            <h4 className="text-xs font-bold text-navy uppercase tracking-wider flex items-center gap-1.5 font-mono">
+              <Sliders className="w-3.5 h-3.5 text-coral" />
+              Machine & Needle Specifications for {fabric.name} ({fabric.material})
+            </h4>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs font-mono">
+              <div className="bg-surface p-3 rounded-xl border border-navy/10 space-y-1">
+                <span className="text-[10px] text-charcoal-muted block font-sans uppercase font-bold">Recommended Needle</span>
+                <span className="font-bold text-navy block">{feasibility.fabricSpecs.needle}</span>
+              </div>
+              <div className="bg-surface p-3 rounded-xl border border-navy/10 space-y-1">
+                <span className="text-[10px] text-charcoal-muted block font-sans uppercase font-bold">Thread & Tension</span>
+                <span className="text-navy font-semibold block">{feasibility.fabricSpecs.thread}</span>
+                <span className="text-[11px] text-coral font-medium block">{feasibility.fabricSpecs.tension}</span>
+              </div>
+              <div className="bg-surface p-3 rounded-xl border border-navy/10 space-y-1">
+                <span className="text-[10px] text-charcoal-muted block font-sans uppercase font-bold">Presser Foot & Seam Type</span>
+                <span className="text-navy font-semibold block">{feasibility.fabricSpecs.presserFoot}</span>
+                <span className="text-[11px] text-charcoal-muted block">{feasibility.fabricSpecs.stitchLength}</span>
+              </div>
+            </div>
           </div>
 
           {/* Required Tools & Materials */}
@@ -382,7 +461,7 @@ export const MakingGuideModal: React.FC<MakingGuideModalProps> = ({
                 Required Tools
               </h4>
               <div className="flex flex-wrap gap-1.5">
-                {idea.toolsNeeded?.map((tool: string, idx: number) => (
+                {dynamicTools.map((tool: string, idx: number) => (
                   <span key={idx} className="px-2.5 py-1 rounded-lg bg-paper border border-navy/10 text-xs text-charcoal font-medium">
                     {tool}
                   </span>
@@ -449,27 +528,21 @@ export const MakingGuideModal: React.FC<MakingGuideModalProps> = ({
               {currentStep && (
                 <div className="p-6 rounded-2xl bg-surface border-2 border-navy/20 shadow-sm space-y-4">
                   <div className="flex items-start justify-between gap-4">
-                    <div className="flex items-center gap-3">
-                      <span className="w-8 h-8 rounded-full bg-navy text-paper font-serif font-bold text-sm flex items-center justify-center flex-shrink-0">
+                    <div className="flex items-center gap-2">
+                      <span className="w-7 h-7 rounded-full bg-navy text-paper flex items-center justify-center text-xs font-mono font-bold">
                         {currentStep.step || safeStepIndex + 1}
                       </span>
-                      <div>
-                        <h4 className="font-serif text-base sm:text-lg font-bold text-navy">
-                          {currentStep.title}
-                        </h4>
-                        <span className="text-[11px] font-mono text-charcoal-muted">
-                          Phase {currentStep.step || safeStepIndex + 1}
-                        </span>
-                      </div>
+                      <h4 className="font-serif text-lg font-bold text-navy">
+                        {currentStep.title}
+                      </h4>
                     </div>
 
                     <button
-                      type="button"
                       onClick={() => toggleStepCompleted(safeStepIndex)}
-                      className={`px-3.5 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-colors ${
-                        isCurrentStepDone
-                          ? 'bg-navy text-paper'
-                          : 'bg-paper border border-navy/30 text-navy hover:bg-navy/5'
+                      className={`px-3 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-colors ${
+                        isCurrentStepDone 
+                          ? 'bg-emerald-600 text-white' 
+                          : 'bg-paper text-navy border border-navy/20 hover:bg-navy/5'
                       }`}
                     >
                       <Check className="w-3.5 h-3.5" />
@@ -477,133 +550,136 @@ export const MakingGuideModal: React.FC<MakingGuideModalProps> = ({
                     </button>
                   </div>
 
-                  <p className="text-xs sm:text-sm text-charcoal leading-relaxed pt-2 border-t border-navy/10">
+                  <p className="text-sm text-charcoal leading-relaxed font-sans">
                     {currentStep.description}
                   </p>
 
-                  {/* Artisan Pro Tip */}
                   {currentStep.tip && (
-                    <div className="p-3.5 rounded-xl bg-bluegray border border-bluegray-300 text-xs text-navy flex items-start gap-2.5">
-                      <Sparkles className="w-4 h-4 text-coral flex-shrink-0 mt-0.5" />
+                    <div className="p-3 rounded-xl bg-bluegray/50 border border-bluegray-200 text-xs text-navy flex items-start gap-2">
+                      <Sparkles className="w-4 h-4 text-coral shrink-0 mt-0.5" />
                       <div>
-                        <span className="font-bold block">Artisan Atelier Pro-Tip:</span>
+                        <strong className="font-semibold block">Atelier Technique Tip:</strong>
                         <span className="text-charcoal-muted">{currentStep.tip}</span>
                       </div>
                     </div>
                   )}
+
+                  <div className="flex items-center justify-between pt-4 border-t border-navy/10">
+                    <button
+                      onClick={prevStep}
+                      disabled={safeStepIndex === 0}
+                      className="px-4 py-2 rounded-xl text-xs font-semibold text-navy bg-paper border border-navy/20 disabled:opacity-30 disabled:pointer-events-none hover:bg-navy/5 flex items-center gap-1"
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                      <span>Previous Step</span>
+                    </button>
+
+                    <button
+                      onClick={nextStep}
+                      disabled={safeStepIndex === steps.length - 1}
+                      className="px-4 py-2 rounded-xl text-xs font-semibold text-paper bg-navy disabled:opacity-30 disabled:pointer-events-none hover:bg-navy-700 flex items-center gap-1"
+                    >
+                      <span>Next Step</span>
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
               )}
-
-              {/* Step Navigation Controls */}
-              <div className="flex items-center justify-between mt-6">
-                <button
-                  type="button"
-                  onClick={prevStep}
-                  disabled={safeStepIndex === 0}
-                  className="px-4 py-2.5 rounded-xl border border-navy/20 text-xs font-semibold text-navy hover:bg-navy/5 disabled:opacity-40 flex items-center gap-1.5"
-                >
-                  <ChevronLeft className="w-4 h-4" />
-                  <span>Previous Step</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={nextStep}
-                  disabled={safeStepIndex === steps.length - 1}
-                  className="px-5 py-2.5 rounded-xl bg-navy text-paper text-xs font-semibold hover:bg-navy/90 disabled:opacity-40 flex items-center gap-1.5"
-                >
-                  <span>Next Step</span>
-                  <ChevronRight className="w-4 h-4" />
-                </button>
-              </div>
             </div>
           )}
 
         </div>
 
-      </motion.div>
-
-      {/* --- LEFTOVER RECORDING MODAL (Feature 5) --- */}
-      {showLeftoverModal && (
-        <div className="fixed inset-0 z-60 bg-navy/80 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn">
-          <div className="bg-paper p-6 sm:p-7 rounded-3xl max-w-md w-full border border-navy/20 shadow-2xl space-y-4">
-            <h3 className="font-serif text-xl font-bold text-navy flex items-center gap-2">
-              <Scissors className="w-5 h-5 text-coral" />
-              <span>Project Finished! Record Leftovers</span>
-            </h3>
-            <p className="text-xs text-charcoal-muted leading-relaxed">
-              You’ve completed all steps for <strong>{idea.title}</strong>! 
-              Enter remaining offcut dimensions to automatically store the scrap in My Fabric Stash for secondary projects.
-            </p>
-
-            <form onSubmit={handleConfirmLeftoverScraps} className="space-y-3">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-[10px] font-mono text-charcoal-muted uppercase">Length ({fabric.dimensions?.unit || 'cm'})</label>
-                  <input
-                    type="number"
-                    min="1"
-                    required
-                    value={leftoverLength}
-                    onChange={(e) => setLeftoverLength(e.target.value ? Number(e.target.value) : '')}
-                    className="w-full px-3 py-1.5 rounded-lg border border-navy/15 text-xs bg-surface"
-                  />
+        {/* Leftover Scrap Recording Dialog */}
+        {showLeftoverModal && (
+          <div className="absolute inset-0 bg-navy/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-paper rounded-2xl p-6 max-w-md w-full border border-navy/20 shadow-xl space-y-4">
+              <div className="flex items-center justify-between border-b border-navy/10 pb-3">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="w-5 h-5 text-coral" />
+                  <h3 className="font-serif text-lg font-bold text-navy">Record Remnant Leftovers</h3>
                 </div>
-                <div>
-                  <label className="block text-[10px] font-mono text-charcoal-muted uppercase">Width ({fabric.dimensions?.unit || 'cm'})</label>
-                  <input
-                    type="number"
-                    min="1"
-                    required
-                    value={leftoverWidth}
-                    onChange={(e) => setLeftoverWidth(e.target.value ? Number(e.target.value) : '')}
-                    className="w-full px-3 py-1.5 rounded-lg border border-navy/15 text-xs bg-surface"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-[10px] font-mono text-charcoal-muted uppercase">Number of Scrap Pieces</label>
-                <input
-                  type="number"
-                  min="1"
-                  required
-                  value={leftoverPieces}
-                  onChange={(e) => setLeftoverPieces(Math.max(1, parseInt(e.target.value) || 1))}
-                  className="w-full px-3 py-1.5 rounded-lg border border-navy/15 text-xs bg-surface"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[10px] font-mono text-charcoal-muted uppercase">Notes</label>
-                <input
-                  type="text"
-                  value={leftoverNotes}
-                  onChange={(e) => setLeftoverNotes(e.target.value)}
-                  className="w-full px-3 py-1.5 rounded-lg border border-navy/15 text-xs bg-surface"
-                />
-              </div>
-
-              <div className="pt-2 flex items-center justify-between">
                 <button
                   type="button"
                   onClick={() => setShowLeftoverModal(false)}
-                  className="text-xs font-mono text-charcoal-muted hover:underline"
+                  className="p-1 rounded-full text-charcoal-muted hover:text-navy"
                 >
-                  Skip
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2 rounded-full bg-emerald-800 text-white text-xs font-semibold hover:bg-emerald-900 shadow-md"
-                >
-                  Add Scrap to Stash
+                  <X className="w-4 h-4" />
                 </button>
               </div>
-            </form>
-          </div>
-        </div>
-      )}
 
+              <p className="text-xs text-charcoal-muted leading-relaxed">
+                Congratulations on completing <strong>{idea.title}</strong>! Record your confirmed scrap offcuts to keep your Fabric Stash inventory zero-waste.
+              </p>
+
+              <form onSubmit={handleConfirmLeftoverScraps} className="space-y-3 font-mono text-xs">
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-[10px] uppercase font-bold text-navy mb-1">Length ({fabric.dimensions?.unit || 'cm'})</label>
+                    <input
+                      type="number"
+                      required
+                      min="1"
+                      value={leftoverLength}
+                      onChange={(e) => setLeftoverLength(e.target.value === '' ? '' : Number(e.target.value))}
+                      className="w-full bg-surface border border-navy/20 rounded-lg px-2.5 py-1.5 text-navy focus:outline-none focus:ring-1 focus:ring-denim"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] uppercase font-bold text-navy mb-1">Width ({fabric.dimensions?.unit || 'cm'})</label>
+                    <input
+                      type="number"
+                      required
+                      min="1"
+                      value={leftoverWidth}
+                      onChange={(e) => setLeftoverWidth(e.target.value === '' ? '' : Number(e.target.value))}
+                      className="w-full bg-surface border border-navy/20 rounded-lg px-2.5 py-1.5 text-navy focus:outline-none focus:ring-1 focus:ring-denim"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] uppercase font-bold text-navy mb-1">Number of Pieces</label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={leftoverPieces}
+                    onChange={(e) => setLeftoverPieces(Number(e.target.value))}
+                    className="w-full bg-surface border border-navy/20 rounded-lg px-2.5 py-1.5 text-navy focus:outline-none focus:ring-1 focus:ring-denim"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] uppercase font-bold text-navy mb-1">Inventory Notes</label>
+                  <input
+                    type="text"
+                    value={leftoverNotes}
+                    onChange={(e) => setLeftoverNotes(e.target.value)}
+                    className="w-full bg-surface border border-navy/20 rounded-lg px-2.5 py-1.5 text-navy focus:outline-none focus:ring-1 focus:ring-denim"
+                  />
+                </div>
+
+                <div className="flex items-center justify-end gap-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowLeftoverModal(false)}
+                    className="px-3 py-1.5 rounded-lg text-charcoal hover:bg-navy/5 text-xs font-sans font-medium"
+                  >
+                    Skip
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-1.5 rounded-lg bg-navy text-paper text-xs font-sans font-bold hover:bg-navy-700 transition-colors"
+                  >
+                    Add to My Fabric Stash
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+      </motion.div>
     </div>
   );
 };

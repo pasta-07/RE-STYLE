@@ -1,22 +1,25 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { 
   Sparkles, 
   ArrowRight, 
   Clock, 
   BookOpen, 
-  HelpCircle,
-  Tag,
-  Scissors,
-  Globe,
-  ExternalLink,
-  DollarSign,
-  Leaf
+  HelpCircle, 
+  Scissors, 
+  Globe, 
+  DollarSign, 
+  Leaf,
+  Layers,
+  CheckCircle2,
+  AlertTriangle,
+  Info
 } from 'lucide-react';
 import { UPCYCLING_IDEAS } from '../data/upcyclingIdeas';
 import type { UpcycleIdea } from '../data/upcyclingIdeas';
 import type { FabricSample } from '../data/mockFabrics';
 import { pickCuratedCatalogImage } from '../utils/blueprintAdapter';
+import { evaluateFabricFeasibility, type CuttingLayoutResult } from '../utils/fabricFeasibility';
 
 export type CatalogSourceFilter = 'ai' | 'all' | 'curated';
 
@@ -36,8 +39,6 @@ const IdeaCardImage: React.FC<{
     setImgSrc(nextSrc);
     setIsLoaded(false);
 
-    // Guaranteed safety timer: static blueprints resolve instantly,
-    // so guarantee isLoaded is true within 300ms so cards never remain stuck on loading
     const timer = setTimeout(() => {
       setIsLoaded(true);
     }, 300);
@@ -67,12 +68,6 @@ const IdeaCardImage: React.FC<{
             setImgSrc(idea.fallbackImageUrl);
           } else if (currentFabric.imageUrl && imgSrc !== currentFabric.imageUrl) {
             setImgSrc(currentFabric.imageUrl);
-          } else if (/jute|burlap/i.test(`${currentFabric.name} ${currentFabric.material}`)) {
-            setImgSrc('/blueprints/jute-patchwork-tote.jpg');
-          } else if (/silk|satin/i.test(`${currentFabric.name} ${currentFabric.material}`)) {
-            setImgSrc('/blueprints/purple-silk-kimono-shrug.jpg');
-          } else if (/linen|flax/i.test(`${currentFabric.name} ${currentFabric.material}`)) {
-            setImgSrc('/blueprints/belgian-slub-linen-weekend-carryall.jpg');
           } else {
             setImgSrc('/blueprints/yellow-cotton-summer-tunic.jpg');
           }
@@ -85,6 +80,8 @@ const IdeaCardImage: React.FC<{
     </div>
   );
 };
+
+export type FeasibilityFilterMode = 'matched' | 'modifications' | 'all';
 
 interface RecommendationsGalleryProps {
   currentFabric: FabricSample;
@@ -104,7 +101,7 @@ export const RecommendationsGallery: React.FC<RecommendationsGalleryProps> = ({
   onCategoryChange,
   onSelectIdeaForGuide,
   aiBlueprints = [],
-  liveTrends = [],
+  liveTrends: _liveTrends = [],
   isAiLoading = false,
   filterMode,
   onFilterModeChange,
@@ -112,6 +109,7 @@ export const RecommendationsGallery: React.FC<RecommendationsGalleryProps> = ({
   const [selectedDifficulty, setSelectedDifficulty] = useState<string>('All');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [userSelectedSource, setUserSelectedSource] = useState<CatalogSourceFilter | null>(null);
+  const [feasibilityView, setFeasibilityView] = useState<FeasibilityFilterMode>('matched');
 
   const activeSource = filterMode ?? userSelectedSource ?? (aiBlueprints.length > 0 ? 'ai' : 'all');
 
@@ -127,84 +125,109 @@ export const RecommendationsGallery: React.FC<RecommendationsGalleryProps> = ({
 
   const hasAiBlueprints = aiBlueprints.length > 0;
 
-  // Dynamically tailor curated ideas so their titles, required materials, and suitability descriptions reflect currentFabric
-  const tailoredCuratedIdeas = React.useMemo(() => {
+  // Dynamically evaluate every curated idea against the active remnant with deterministic 2D math
+  const evaluatedCuratedIdeas = useMemo(() => {
     return UPCYCLING_IDEAS.map((idea, idx) => {
-      const colorWord = currentFabric.dominantColor ? `${currentFabric.dominantColor} ` : '';
-      const matName = currentFabric.material || 'textile remnant';
+      const feasibilityResult: CuttingLayoutResult = evaluateFabricFeasibility(idea, currentFabric);
       const adaptedImage = pickCuratedCatalogImage(idea, currentFabric, idx);
+
+      // Adapt tools to fabric sewing specs
+      const dynamicTools = [
+        `Sewing machine (${feasibilityResult.fabricSpecs.needle}) or hand-sewing needle`,
+        feasibilityResult.fabricSpecs.thread,
+        feasibilityResult.fabricSpecs.presserFoot,
+        'Fabric shears or rotary cutter',
+        'Steam iron & pressing cloth'
+      ];
 
       return {
         ...idea,
         imageUrl: adaptedImage,
         fallbackImageUrl: adaptedImage,
-        fabricRequired: `Approx. ${currentFabric.dimensions.width}×${currentFabric.dimensions.height} ${currentFabric.dimensions.unit} ${colorWord}${matName} remnant`,
-        suitabilityReason: `The ${currentFabric.weave || 'woven structure'} and ${currentFabric.texture || 'tactile drape'} of ${colorWord}${matName} (~${currentFabric.weightGsm} GSM) provide optimal zero-waste cutting lines.`,
-        materialsNeeded: [
-          `Main ${colorWord}${matName} remnant (${currentFabric.dimensions.width}×${currentFabric.dimensions.height} ${currentFabric.dimensions.unit})`,
-          ...idea.materialsNeeded.slice(1)
-        ]
+        matchScore: feasibilityResult.matchScore,
+        suitabilityReason: feasibilityResult.suitabilityReason,
+        feasibility: {
+          status: feasibilityResult.status,
+          confidence: 'high',
+          notes: feasibilityResult.explanation,
+        },
+        toolsNeeded: dynamicTools,
+        rawFeasibility: feasibilityResult
       };
     });
   }, [currentFabric]);
 
+  // Evaluated AI blueprints with the same 2D math and dynamic fabric specs
+  const evaluatedAiBlueprints = useMemo(() => {
+    return aiBlueprints.map((idea) => {
+      const feasibilityResult: CuttingLayoutResult = evaluateFabricFeasibility(idea, currentFabric);
+      return {
+        ...idea,
+        matchScore: feasibilityResult.matchScore,
+        feasibility: {
+          status: feasibilityResult.status,
+          confidence: 'high',
+          notes: feasibilityResult.explanation,
+        },
+        rawFeasibility: feasibilityResult
+      };
+    });
+  }, [aiBlueprints, currentFabric]);
+
   // Determine active blueprint pool based on chosen source filter
   let baseIdeasPool: UpcycleIdea[] = [];
   if (activeSource === 'ai') {
-    baseIdeasPool = hasAiBlueprints ? aiBlueprints : tailoredCuratedIdeas;
+    baseIdeasPool = hasAiBlueprints ? evaluatedAiBlueprints : evaluatedCuratedIdeas;
   } else if (activeSource === 'curated') {
-    baseIdeasPool = tailoredCuratedIdeas;
+    baseIdeasPool = evaluatedCuratedIdeas;
   } else {
     // 'all'
-    baseIdeasPool = [...aiBlueprints, ...tailoredCuratedIdeas];
+    baseIdeasPool = [...evaluatedAiBlueprints, ...evaluatedCuratedIdeas];
   }
 
-  // Calculate simple, explainable match score from fabric data & dimensions
-  const calculateExplainableScore = (idea: UpcycleIdea, fabric: FabricSample): number => {
-    if (idea.matchScore && idea.isAiGenerated) {
-      return idea.matchScore;
-    }
+  // Filter recommendations by category, difficulty, search
+  const filteredIdeas = useMemo(() => {
+    const list = baseIdeasPool.filter((idea: UpcycleIdea) => {
+      const matchesCategory = selectedCategory === 'All' || idea.category === selectedCategory;
+      const matchesDifficulty = selectedDifficulty === 'All' || idea.difficulty === selectedDifficulty;
+      const matchesSearch = 
+        idea.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        idea.subtitle.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        idea.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        idea.tags.some((t) => t.toLowerCase().includes(searchQuery.toLowerCase()));
 
-    const widthCm = fabric.dimensions.unit === 'in' ? fabric.dimensions.width * 2.54 : fabric.dimensions.width;
-    const heightCm = fabric.dimensions.unit === 'in' ? fabric.dimensions.height * 2.54 : fabric.dimensions.height;
-    const areaCm2 = widthCm * heightCm;
+      return matchesCategory && matchesDifficulty && matchesSearch;
+    });
 
-    let score = 84;
+    // Rank feasible projects first, then tight, then requires piecing, then insufficient
+    return list.sort((a: any, b: any) => {
+      const statusOrder: Record<string, number> = {
+        feasible: 1,
+        tight: 2,
+        requires_piecing: 3,
+        insufficient_material: 4
+      };
+      const orderA = statusOrder[a.feasibility?.status || 'feasible'] || 2;
+      const orderB = statusOrder[b.feasibility?.status || 'feasible'] || 2;
+      if (orderA !== orderB) return orderA - orderB;
+      return (b.matchScore || 0) - (a.matchScore || 0);
+    });
+  }, [baseIdeasPool, selectedCategory, selectedDifficulty, searchQuery]);
 
-    if (areaCm2 >= 1200) {
-      score += 6;
-    } else if (areaCm2 >= 600) {
-      score += idea.category === 'Bags & Carry' ? 3 : 8;
-    } else {
-      score += idea.category === 'Accessories' ? 10 : -4;
-    }
+  // Separate directly matched blueprints from blueprints requiring modifications
+  const directlyMatchedIdeas = useMemo(() => {
+    return filteredIdeas.filter((idea: any) => idea.rawFeasibility?.isDirectlyMatched);
+  }, [filteredIdeas]);
 
-    const matLower = fabric.material.toLowerCase();
-    if (idea.tags.some((tag) => matLower.includes(tag.toLowerCase()))) {
-      score += 4;
-    }
+  const modificationIdeas = useMemo(() => {
+    return filteredIdeas.filter((idea: any) => !idea.rawFeasibility?.isDirectlyMatched);
+  }, [filteredIdeas]);
 
-    if (fabric.condition === 'Crisp Remnant' || fabric.condition === 'Gently Washed') {
-      score += 3;
-    }
-
-    return Math.min(99, Math.max(76, Math.round(score)));
-  };
-
-  // Filter recommendations
-  const filteredIdeas = baseIdeasPool.filter((idea: UpcycleIdea) => {
-    const matchesCategory = selectedCategory === 'All' || idea.category === selectedCategory;
-    const matchesDifficulty = selectedDifficulty === 'All' || idea.difficulty === selectedDifficulty;
-    const matchesSearch = 
-      idea.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      idea.subtitle.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      idea.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      idea.tags.some((t) => t.toLowerCase().includes(searchQuery.toLowerCase()));
-
-    return matchesCategory && matchesDifficulty && matchesSearch;
-  });
-
-  const totalCount = aiBlueprints.length + UPCYCLING_IDEAS.length;
+  const displayedIdeas = useMemo(() => {
+    if (feasibilityView === 'matched') return directlyMatchedIdeas;
+    if (feasibilityView === 'modifications') return modificationIdeas;
+    return filteredIdeas;
+  }, [feasibilityView, directlyMatchedIdeas, modificationIdeas, filteredIdeas]);
 
   return (
     <section id="recommendations-section" className="py-20 lg:py-28 bg-paper relative">
@@ -215,7 +238,7 @@ export const RecommendationsGallery: React.FC<RecommendationsGalleryProps> = ({
           <div>
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-bluegray text-navy text-xs font-semibold uppercase tracking-wider mb-3 border border-bluegray-200">
               <Sparkles className="w-3.5 h-3.5 text-coral" />
-              <span>Generative Blueprint Catalog</span>
+              <span>Calculated 2D Blueprint Catalog</span>
             </div>
             <h2 className="font-serif-title text-3xl sm:text-4xl lg:text-5xl text-navy font-semibold leading-tight">
               Upcycling blueprints matched to your remnant.
@@ -240,7 +263,7 @@ export const RecommendationsGallery: React.FC<RecommendationsGalleryProps> = ({
             <span className="font-semibold text-navy">
               {isAiLoading
                 ? 'Synthesizing TinyFish Trends...'
-                : `${filteredIdeas.length} ${hasAiBlueprints && activeSource === 'ai' ? 'TinyFish AI Patterns' : 'Patterns'} Ready`}
+                : `${displayedIdeas.length} ${displayedIdeas.length === 1 ? 'Pattern' : 'Patterns'} ${feasibilityView === 'matched' ? 'Directly Matched' : feasibilityView === 'modifications' ? 'With Modifications' : 'Displayed'}`}
             </span>
           </div>
         </div>
@@ -258,149 +281,154 @@ export const RecommendationsGallery: React.FC<RecommendationsGalleryProps> = ({
               }`}
             >
               <Sparkles className="w-3.5 h-3.5 text-emerald-200" />
-              <span>✨ TinyFish Matched Blueprints ({aiBlueprints.length})</span>
+              <span>TinyFish 2026 Live Trends ({evaluatedAiBlueprints.length})</span>
             </button>
           )}
 
           <button
             type="button"
             onClick={() => handleSourceChange('all')}
-            className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all ${
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
               activeSource === 'all'
                 ? 'bg-navy text-paper shadow-sm'
-                : 'text-charcoal hover:bg-paper-100'
+                : 'text-charcoal-muted hover:text-navy hover:bg-paper-100'
             }`}
           >
-            All Blueprints ({totalCount})
+            All Blueprints ({evaluatedAiBlueprints.length + evaluatedCuratedIdeas.length})
           </button>
 
           <button
             type="button"
             onClick={() => handleSourceChange('curated')}
-            className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all ${
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
               activeSource === 'curated'
                 ? 'bg-navy text-paper shadow-sm'
-                : 'text-charcoal hover:bg-paper-100'
+                : 'text-charcoal-muted hover:text-navy hover:bg-paper-100'
             }`}
           >
-            Studio Curated Archive ({UPCYCLING_IDEAS.length})
+            Studio Core Tested Blueprints ({evaluatedCuratedIdeas.length})
           </button>
         </div>
 
-        {/* TinyFish Trend Synthesis Live Banner (When AI blueprints are active) */}
-        {hasAiBlueprints && activeSource !== 'curated' && (
-          <div className="mb-10 p-5 sm:p-6 rounded-3xl bg-gradient-to-r from-emerald-50 via-teal-50/50 to-bluegray/20 border border-emerald-200 shadow-warm">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-              <div className="space-y-1.5">
-                <div className="flex items-center gap-2 text-xs font-mono font-bold text-emerald-800 uppercase tracking-wider">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                  <span>TinyFish Real-Time Trend Synthesis Active</span>
-                </div>
-                <h3 className="font-serif text-xl sm:text-2xl font-bold text-navy">
-                  {aiBlueprints.length} Bespoke Zero-Waste Blueprints for {currentFabric.name}
-                </h3>
-                <p className="text-xs sm:text-sm text-charcoal-muted max-w-3xl leading-relaxed">
-                  Synthesized live from your {currentFabric.material} remnant dimensions ({currentFabric.dimensions.width}×{currentFabric.dimensions.height} {currentFabric.dimensions.unit}) and real-time sustainable fashion trends fetched via TinyFish.
-                </p>
-              </div>
-
-              <div className="flex items-center gap-2 flex-shrink-0">
-                <span className="px-3 py-1.5 rounded-xl bg-white/90 border border-emerald-300 text-xs font-mono text-emerald-900 font-bold shadow-2xs">
-                  Fiber: {currentFabric.material}
-                </span>
-              </div>
-            </div>
-
-            {/* Clickable TinyFish Live Trend Sources */}
-            {liveTrends && liveTrends.length > 0 && (
-              <div className="mt-4 pt-3.5 border-t border-emerald-200/70 flex flex-wrap items-center gap-2">
-                <span className="text-[11px] font-mono text-emerald-900 font-bold flex items-center gap-1 mr-1">
-                  <Globe className="w-3.5 h-3.5 text-coral" />
-                  TinyFish Trend Signals:
-                </span>
-                {liveTrends.slice(0, 4).map((trend, idx) => (
-                  <a
-                    key={idx}
-                    href={trend.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    title={trend.snippet}
-                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-white text-[11px] font-medium text-navy border border-emerald-200 shadow-2xs hover:border-coral hover:text-coral transition-colors"
-                  >
-                    <span className="truncate max-w-[220px] sm:max-w-[320px]">{trend.title}</span>
-                    <ExternalLink className="w-3 h-3 text-charcoal-muted flex-shrink-0" />
-                  </a>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Filters and Search Bar */}
-        <div className="p-4 sm:p-6 rounded-2xl bg-surface border border-navy/15 mb-10 space-y-4 shadow-sm">
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
-            
-            {/* Search Input */}
-            <div className="relative flex-grow max-w-md">
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search blueprints (e.g. tote, boro, charm, jacket, rig)..."
-                aria-label="Search upcycling blueprints"
-                className="w-full bg-paper border border-navy/20 rounded-xl px-4 py-2.5 text-xs text-charcoal focus:outline-none focus:ring-2 focus:ring-navy/30"
-              />
-            </div>
-
-            {/* Difficulty Filter */}
-            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0" role="toolbar" aria-label="Difficulty level filter">
-              <span className="text-xs font-mono uppercase text-charcoal-muted mr-1">Skill:</span>
-              {difficulties.map((diff) => (
-                <button
-                  key={diff}
-                  onClick={() => setSelectedDifficulty(diff)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-denim ${
-                    selectedDifficulty === diff
-                      ? 'bg-navy text-paper font-semibold'
-                      : 'bg-paper text-charcoal hover:bg-navy/10 border border-navy/15'
-                  }`}
-                >
-                  {diff}
-                </button>
-              ))}
-            </div>
-
-          </div>
-
-          {/* Category Tabs */}
-          <div className="flex items-center gap-2 overflow-x-auto pt-2 border-t border-navy/10" role="tablist" aria-label="Category tabs">
-            <span className="text-xs font-mono uppercase text-charcoal-muted mr-2 flex items-center gap-1">
-              <Tag className="w-3.5 h-3.5 text-coral" />
-              Category:
-            </span>
-            {categories.map((cat) => (
+        {/* Category Filters Bar */}
+        <div className="flex flex-wrap items-center gap-2 mb-6">
+          <span className="text-xs font-mono font-bold text-navy uppercase tracking-wider mr-2">Category:</span>
+          {categories.map((cat) => {
+            const isSelected = selectedCategory === cat;
+            return (
               <button
                 key={cat}
+                type="button"
                 onClick={() => onCategoryChange(cat)}
-                role="tab"
-                aria-selected={selectedCategory === cat}
-                className={`px-3.5 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all focus:outline-none focus-visible:ring-1 focus-visible:ring-denim ${
-                  selectedCategory === cat
-                    ? 'bg-navy text-paper font-semibold shadow-xs'
-                    : 'bg-paper text-charcoal hover:bg-navy/5 border border-navy/15'
+                className={`px-3.5 py-1.5 rounded-full text-xs font-medium transition-all ${
+                  isSelected
+                    ? 'bg-coral text-paper font-semibold shadow-xs'
+                    : 'bg-surface text-charcoal-muted hover:text-navy hover:bg-paper-100 border border-navy/10'
                 }`}
               >
                 {cat}
               </button>
+            );
+          })}
+        </div>
+
+        {/* Difficulty Filter & Search Bar */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 mb-6 pb-6 border-b border-navy/10">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs font-mono font-bold text-navy uppercase tracking-wider mr-2">Difficulty:</span>
+            {difficulties.map((diff) => (
+              <button
+                key={diff}
+                type="button"
+                onClick={() => setSelectedDifficulty(diff)}
+                className={`px-3 py-1 rounded-lg text-xs font-mono transition-colors ${
+                  selectedDifficulty === diff
+                    ? 'bg-navy text-paper font-bold'
+                    : 'bg-paper text-charcoal-muted hover:text-navy border border-navy/10'
+                }`}
+              >
+                {diff}
+              </button>
             ))}
+          </div>
+
+          <div className="relative max-w-xs w-full">
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search blueprints by title or tag..."
+              className="w-full px-3.5 py-2 rounded-xl bg-surface border border-navy/15 text-xs text-navy placeholder:text-charcoal-muted/60 focus:outline-none focus:ring-2 focus:ring-denim"
+            />
           </div>
         </div>
 
-        {/* Ideas Grid */}
+        {/* Feasibility Filter Sub-tabs: Directly Matched vs Possible with Modifications */}
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-8 bg-paper-100 p-2.5 rounded-2xl border border-navy/15">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs font-mono font-bold text-navy uppercase tracking-wider mr-1 flex items-center gap-1">
+              <Scissors className="w-3.5 h-3.5 text-coral" />
+              Remnant Feasibility:
+            </span>
+
+            <button
+              type="button"
+              onClick={() => setFeasibilityView('matched')}
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+                feasibilityView === 'matched'
+                  ? 'bg-emerald-700 text-white shadow-xs'
+                  : 'bg-surface text-charcoal-muted hover:text-navy border border-navy/10'
+              }`}
+            >
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-300" />
+              <span>Directly Matched Remnant Projects ({directlyMatchedIdeas.length})</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setFeasibilityView('modifications')}
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+                feasibilityView === 'modifications'
+                  ? 'bg-indigo-700 text-white shadow-xs'
+                  : 'bg-surface text-charcoal-muted hover:text-navy border border-navy/10'
+              }`}
+            >
+              <Layers className="w-3.5 h-3.5 text-indigo-300" />
+              <span>Possible with Modifications ({modificationIdeas.length})</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setFeasibilityView('all')}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                feasibilityView === 'all'
+                  ? 'bg-navy text-paper shadow-xs'
+                  : 'bg-surface text-charcoal-muted hover:text-navy border border-navy/10'
+              }`}
+            >
+              All Projects ({filteredIdeas.length})
+            </button>
+          </div>
+
+          {modificationIdeas.length > 0 && feasibilityView === 'matched' && (
+            <button
+              type="button"
+              onClick={() => setFeasibilityView('modifications')}
+              className="text-[11px] font-mono text-indigo-700 hover:text-indigo-900 underline font-semibold flex items-center gap-1 cursor-pointer"
+            >
+              <span>+ View {modificationIdeas.length} projects possible with extra fabric/piecing</span>
+              <ArrowRight className="w-3 h-3" />
+            </button>
+          )}
+        </div>
+
+        {/* Blueprint Cards Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {filteredIdeas.map((idea: UpcycleIdea) => {
-            const calculatedScore = calculateExplainableScore(idea, currentFabric);
+          {displayedIdeas.map((idea: any) => {
             const isAi = idea.isAiGenerated;
+            const rawFeasibility: CuttingLayoutResult | undefined = idea.rawFeasibility;
+            const score = idea.matchScore;
+            const status = idea.feasibility?.status;
 
             return (
               <motion.div
@@ -422,13 +450,23 @@ export const RecommendationsGallery: React.FC<RecommendationsGalleryProps> = ({
                     {/* Gradient Overlay */}
                     <div className="absolute inset-0 bg-gradient-to-t from-navy/70 via-transparent to-transparent opacity-60" />
 
-                    {/* Match Score Badge with explainable label */}
+                    {/* Match Score Badge with Honest Derived Fit */}
                     <div className="absolute top-3 left-3 flex items-center gap-1.5">
                       <span 
-                        className="px-3 py-1 rounded-full text-[11px] font-mono uppercase tracking-wider font-bold bg-paper/95 backdrop-blur-md text-navy border border-navy/20 shadow-xs"
-                        title="Score estimated from remnant area dimensions and textile structure suitability"
+                        className={`px-3 py-1 rounded-full text-[11px] font-mono uppercase tracking-wider font-bold shadow-xs border ${
+                          score >= 85 
+                            ? 'bg-paper/95 text-navy border-navy/20' 
+                            : score >= 60 
+                            ? 'bg-indigo-50/95 text-indigo-900 border-indigo-200' 
+                            : 'bg-rose-50/95 text-rose-900 border-rose-200'
+                        }`}
+                        title="Score calculated from physical 2D remnant dimensions, cutting layout, and textile compatibility"
                       >
-                        {calculatedScore}% Surface Fit
+                        {score >= 85 
+                          ? `${score}% Surface Fit` 
+                          : score >= 60 
+                          ? `${score}% Fit (Pieced)` 
+                          : 'Doesn’t Fit Remnant'}
                       </span>
                     </div>
 
@@ -479,6 +517,36 @@ export const RecommendationsGallery: React.FC<RecommendationsGalleryProps> = ({
                       </p>
                     </div>
 
+                    {/* Physical Feasibility & Remnant Utilization Badge */}
+                    {rawFeasibility && (
+                      <div className={`p-2.5 rounded-xl border text-xs font-mono flex items-start gap-2 ${rawFeasibility.statusBadgeColor}`}>
+                        {status === 'feasible' ? (
+                          <CheckCircle2 className="w-4 h-4 text-emerald-700 flex-shrink-0 mt-0.5" />
+                        ) : status === 'tight' ? (
+                          <AlertTriangle className="w-4 h-4 text-amber-700 flex-shrink-0 mt-0.5" />
+                        ) : status === 'requires_piecing' ? (
+                          <Layers className="w-4 h-4 text-indigo-700 flex-shrink-0 mt-0.5" />
+                        ) : (
+                          <AlertTriangle className="w-4 h-4 text-rose-700 flex-shrink-0 mt-0.5" />
+                        )}
+                        <div className="leading-tight">
+                          <span className="font-bold block">{rawFeasibility.statusLabel}</span>
+                          <span className="text-[11px] opacity-90">{rawFeasibility.explanation}</span>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Explicit Modification Needed Callout Box */}
+                    {rawFeasibility?.modificationNeeded && (
+                      <div className="p-2.5 rounded-xl bg-indigo-50 border border-indigo-200/80 text-xs font-mono text-indigo-950 flex items-start gap-2">
+                        <Layers className="w-3.5 h-3.5 text-indigo-600 flex-shrink-0 mt-0.5" />
+                        <div>
+                          <span className="font-bold block text-[10px] uppercase tracking-wider text-indigo-900">Modification Needed:</span>
+                          <span className="text-[11px] leading-relaxed opacity-95">{rawFeasibility.modificationNeeded}</span>
+                        </div>
+                      </div>
+                    )}
+
                     {/* Production Economics (for TinyFish / AI Blueprints) */}
                     {(idea.productionCost || idea.sellingPrice) && (
                       <div className="p-2.5 rounded-xl bg-emerald-50/80 border border-emerald-200 flex items-center justify-between text-xs">
@@ -515,25 +583,6 @@ export const RecommendationsGallery: React.FC<RecommendationsGalleryProps> = ({
                       </span>
                     </div>
 
-                    {/* Fabric Feasibility Notice */}
-                    {idea.feasibility && (
-                      <div 
-                        className={`p-2.5 rounded-xl text-[11px] font-mono leading-tight flex items-start gap-1.5 ${
-                          idea.feasibility.status === 'feasible' 
-                            ? 'bg-emerald-50/90 text-emerald-900 border border-emerald-200' 
-                            : idea.feasibility.status === 'tight'
-                            ? 'bg-amber-50/90 text-amber-900 border border-amber-200'
-                            : 'bg-rose-50/90 text-rose-900 border border-rose-200'
-                        }`}
-                        title={idea.feasibility.notes}
-                      >
-                        <span className="font-bold flex-shrink-0">
-                          {idea.feasibility.status === 'feasible' ? '✓ Feasible' : idea.feasibility.status === 'tight' ? '⚠ Tight Fit' : '✕ Scant Material'}:
-                        </span>
-                        <span className="line-clamp-2">{idea.feasibility.notes}</span>
-                      </div>
-                    )}
-
                     {/* Blueprint Notes */}
                     <div className="p-3 rounded-xl bg-paper border border-navy/10 text-xs">
                       <span className="text-[10px] font-mono uppercase tracking-wider text-charcoal-muted block mb-0.5">
@@ -543,6 +592,14 @@ export const RecommendationsGallery: React.FC<RecommendationsGalleryProps> = ({
                         {idea.patternNotes}
                       </p>
                     </div>
+
+                    {/* Dynamic Fabric Needle & Thread Spec Tip */}
+                    {rawFeasibility && (
+                      <div className="text-[10px] font-mono text-charcoal-muted flex items-center gap-1.5 bg-paper-100 p-2 rounded-lg border border-navy/5">
+                        <Info className="w-3 h-3 text-coral flex-shrink-0" />
+                        <span className="truncate">Needle: {rawFeasibility.fabricSpecs.needle}</span>
+                      </div>
+                    )}
 
                     {/* TinyFish Source Citation if available */}
                     {idea.sourcesUsed && idea.sourcesUsed.length > 0 && (
@@ -571,25 +628,44 @@ export const RecommendationsGallery: React.FC<RecommendationsGalleryProps> = ({
           })}
         </div>
 
-        {/* Empty Search State */}
-        {filteredIdeas.length === 0 && (
+        {/* Empty State when no patterns match */}
+        {displayedIdeas.length === 0 && (
           <div className="p-12 text-center rounded-3xl bg-surface border border-navy/15 max-w-lg mx-auto space-y-4 shadow-sm">
             <HelpCircle className="w-10 h-10 text-coral mx-auto" />
-            <h3 className="font-serif text-lg font-bold text-navy">No matching blueprints found</h3>
-            <p className="text-xs text-charcoal-muted">
-              Try adjusting your search query, selecting another category, or explore all blueprints.
+            <h3 className="font-serif text-lg font-bold text-navy">
+              {feasibilityView === 'matched'
+                ? `No direct matches in "${selectedCategory}"`
+                : `No blueprints found in "${selectedCategory}"`}
+            </h3>
+            <p className="text-xs text-charcoal-muted leading-relaxed">
+              {feasibilityView === 'matched' && modificationIdeas.length > 0
+                ? `Your ${currentFabric.dimensions.width}×${currentFabric.dimensions.height} ${currentFabric.dimensions.unit} ${currentFabric.name} cannot fit any "${selectedCategory}" pattern directly without extra fabric. However, ${modificationIdeas.length} project(s) can be made with modular piecing or contrast backing.`
+                : `No blueprints under "${selectedCategory}" with "${selectedDifficulty}" difficulty match your filters.`}
             </p>
-            <button
-              onClick={() => {
-                onCategoryChange('All');
-                setSelectedDifficulty('All');
-                setSearchQuery('');
-                handleSourceChange('all');
-              }}
-              className="px-5 py-2 rounded-full bg-navy text-paper text-xs font-semibold hover:bg-navy-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-denim"
-            >
-              Reset All Filters
-            </button>
+            <div className="pt-2 flex flex-wrap justify-center gap-3">
+              {feasibilityView === 'matched' && modificationIdeas.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setFeasibilityView('modifications')}
+                  className="px-4 py-2 rounded-xl bg-indigo-700 text-white text-xs font-semibold hover:bg-indigo-800 transition-colors flex items-center gap-1.5"
+                >
+                  <Layers className="w-3.5 h-3.5" />
+                  <span>View {modificationIdeas.length} Projects with Modifications</span>
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => {
+                  onCategoryChange('All');
+                  setSelectedDifficulty('All');
+                  setSearchQuery('');
+                  setFeasibilityView('matched');
+                }}
+                className="px-4 py-2 rounded-xl bg-navy text-paper text-xs font-semibold hover:bg-navy-700 transition-colors"
+              >
+                Reset Filters & View All
+              </button>
+            </div>
           </div>
         )}
 

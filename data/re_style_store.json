@@ -1,6 +1,366 @@
 {
   "fabrics": [
     {
+      "id": "fabric-1792154132684-b2bym",
+      "userId": "test-maker-1792154132287",
+      "name": "Sage Green Offcut Scrap (25×18 cm)",
+      "imageUrl": "https://images.unsplash.com/photo-1582533561751-ef6f6ab93a2e?auto=format&fit=crop&w=800&q=80",
+      "material": "linen",
+      "materialLabel": "100% Normandy Flax Linen",
+      "dominantColor": "Sage Green",
+      "secondaryColors": [
+        "Ecru",
+        "Olive"
+      ],
+      "pattern": "Slub Texture",
+      "dimensions": {
+        "length": 25,
+        "width": 18,
+        "unit": "cm"
+      },
+      "shape": "irregular",
+      "totalQuantity": 2,
+      "reservedQuantity": 0,
+      "consumedQuantity": 0,
+      "availableQuantity": 2,
+      "condition": "good",
+      "conditionLabel": "Clean Offcut",
+      "stretch": "none",
+      "thickness": "medium",
+      "weightGsm": 210,
+      "purchaseCost": null,
+      "storageLocation": "Studio Scrap Box",
+      "notes": "Two rectangular offcuts from side cuts",
+      "source": "scrap",
+      "parentFabricId": "fabric-1792154132350-x92lm",
+      "createdAt": "2026-10-16T12:35:32.684Z",
+      "updatedAt": "2026-10-16T12:35:32.684Z"
+    },
+    {
+      "id": "fabric-1792154132350-x92lm",
+      "userId": "test-maker-1792154132287",
+      "name": "Deadstock Linen Slub",
+      "imageUrl": "https://images.unsplash.com/photo-1582533561751-ef6f6ab93a2e?auto=format&fit=crop&w=800&q=80",
+      "material": "linen",
+      "materialLabel": "100% Normandy Flax Linen",
+      "dominantColor": "Sage Green",
+      "secondaryColors": [
+        "Ecru",
+        "Olive"
+      ],
+      "pattern": "Slub Texture",
+      "dimensions": {
+        "length": 55,
+        "width": 42,
+        "unit": "cm"
+      },
+      "shape": "rectangular",
+      "totalQuantity": 2,
+      "reservedQuantity": 0,
+      "consumedQuantity": 2,
+      "availableQuantity": 0,
+      "condition": "new",
+      "conditionLabel": "Crisp Remnant",
+      "stretch": "none",
+      "thickness": "medium",
+      "weightGsm": 210,
+      "purchaseCost": 14.5,
+      "storageLocation": "Shelf 3",
+      "notes": "Updated dimension measurements after steam pressing",
+      "source": "purchased",
+      "parentFabricId": null,
+      "createdAt": "2026-10-16T12:35:32.350Z",
+      "updatedAt": "2026-10-16T12:35:32.681Z"
+    },
+    {
+      "id": "fabric-1792153647398-jdquj",
+      "userId": "test-maker-1792153647036",
+      "name": "Sage Green Offcut Scrap (25×18 cm)",
+      "imageUrl": "https://images.unsplash.com/photo-1582533561751-ef6f6ab93a2e?auto=format&fit=crop&w=800&q=80",
+      "material": "linen",
+      "materialLabel": "100% Normandy Flax Linen",
+      "dominantColor": "Sage Green",
+      "secondaryColors": [
+        "Ecru",
+        "Olive"
+      ],
+      "pattern": "Slub Texture",
+      "dimensions": {
+        "length": 25,
+        "width": 18,
+        "unit": "cm"
+      },
+      "shape": "irregular",
+      "totalQuantity": 2,
+      "reservedQuantity": 0,
+      "consumedQuantity": 0,
+      "availableQuantity": 2,
+      "condition": "good",
+      "conditionLabel": "Clean Offcut",
+      "stretch": "none",
+      "thickness": "medium",
+      "weightGsm": 210,
+      "purchaseCost": null,
+      "storageLocation": "Studio Scrap Box",
+      "notes": "Two rectangular offcuts from side cuts",
+      "source": "scrap",
+      "parentFabricId": "fabric-1792153647096-lkm6s",
+      "createdAt": "2026-10-16T12:27:27.398Z",
+      "updatedAt": "2026-10-16T12:27:27.398Z"
+    },
+    {
+      "id": "fabric-1792153647096-lkm6s",
+      "userId": "test-maker-1792153647036",
+      "name": "Deadstock Linen Slub",
+      "imageUrl": "https://images.unsplash.com/photo-1582533561751-ef6f6ab93a2e?auto=format&fit=crop&w=800&q=80",
+      "material": "linen",
+      "materialLabel": "100% Normandy Flax Linen",
+      "dominantColor": "Sage Green",
+      "secondaryColors": [
+        "Ecru",
+        "Olive"
+      ],
+      "pattern": "Slub Texture",
+      "dimensions": {
+        "length": 55,
+        "width": 42,
+        "unit": "cm"
+      },
+      "shape": "rectangular",
+      "totalQuantity": 2,
+      "reservedQuantity": 0,
+      "consumedQuantity": 2,
+      "availableQuantity": 0,
+      "condition": "new",
+      "conditionLabel": "Crisp Remnant",
+      "stretch": "none",
+      "thickness": "medium",
+      "weightGsm": 210,
+      "purchaseCost": 14.5,
+      "storageLocation": "Shelf 3",
+      "notes": "Updated dimension measurements after steam pressing",
+      "source": "purchased",
+      "parentFabricId": null,
+      "createdAt": "2026-10-16T12:27:27.096Z",
+      "updatedAt": "2026-10-16T12:27:27.395Z"
+    },
+    {
+      "id": "fabric-1792153610091-yowy7",
+      "userId": "test-maker-1792153609730",
+      "name": "Sage Green Offcut Scrap (25×18 cm)",
+      "imageUrl": "https://images.unsplash.com/photo-1582533561751-ef6f6ab93a2e?auto=format&fit=crop&w=800&q=80",
+      "material": "linen",
+      "materialLabel": "100% Normandy Flax Linen",
+      "dominantColor": "Sage Green",
+      "secondaryColors": [
+        "Ecru",
+        "Olive"
+      ],
+      "pattern": "Slub Texture",
+      "dimensions": {
+        "length": 25,
+        "width": 18,
+        "unit": "cm"
+      },
+      "shape": "irregular",
+      "totalQuantity": 2,
+      "reservedQuantity": 0,
+      "consumedQuantity": 0,
+      "availableQuantity": 2,
+      "condition": "good",
+      "conditionLabel": "Clean Offcut",
+      "stretch": "none",
+      "thickness": "medium",
+      "weightGsm": 210,
+      "purchaseCost": null,
+      "storageLocation": "Studio Scrap Box",
+      "notes": "Two rectangular offcuts from side cuts",
+      "source": "scrap",
+      "parentFabricId": "fabric-1792153609784-pbfng",
+      "createdAt": "2026-10-16T12:26:50.091Z",
+      "updatedAt": "2026-10-16T12:26:50.091Z"
+    },
+    {
+      "id": "fabric-1792153609784-pbfng",
+      "userId": "test-maker-1792153609730",
+      "name": "Deadstock Linen Slub",
+      "imageUrl": "https://images.unsplash.com/photo-1582533561751-ef6f6ab93a2e?auto=format&fit=crop&w=800&q=80",
+      "material": "linen",
+      "materialLabel": "100% Normandy Flax Linen",
+      "dominantColor": "Sage Green",
+      "secondaryColors": [
+        "Ecru",
+        "Olive"
+      ],
+      "pattern": "Slub Texture",
+      "dimensions": {
+        "length": 55,
+        "width": 42,
+        "unit": "cm"
+      },
+      "shape": "rectangular",
+      "totalQuantity": 2,
+      "reservedQuantity": 0,
+      "consumedQuantity": 2,
+      "availableQuantity": 0,
+      "condition": "new",
+      "conditionLabel": "Crisp Remnant",
+      "stretch": "none",
+      "thickness": "medium",
+      "weightGsm": 210,
+      "purchaseCost": 14.5,
+      "storageLocation": "Shelf 3",
+      "notes": "Updated dimension measurements after steam pressing",
+      "source": "purchased",
+      "parentFabricId": null,
+      "createdAt": "2026-10-16T12:26:49.784Z",
+      "updatedAt": "2026-10-16T12:26:50.088Z"
+    },
+    {
+      "id": "fabric-1792153488350-199h0",
+      "userId": "test-maker-1792153488015",
+      "name": "Sage Green Offcut Scrap (25×18 cm)",
+      "imageUrl": "https://images.unsplash.com/photo-1582533561751-ef6f6ab93a2e?auto=format&fit=crop&w=800&q=80",
+      "material": "linen",
+      "materialLabel": "100% Normandy Flax Linen",
+      "dominantColor": "Sage Green",
+      "secondaryColors": [
+        "Ecru",
+        "Olive"
+      ],
+      "pattern": "Slub Texture",
+      "dimensions": {
+        "length": 25,
+        "width": 18,
+        "unit": "cm"
+      },
+      "shape": "irregular",
+      "totalQuantity": 2,
+      "reservedQuantity": 0,
+      "consumedQuantity": 0,
+      "availableQuantity": 2,
+      "condition": "good",
+      "conditionLabel": "Clean Offcut",
+      "stretch": "none",
+      "thickness": "medium",
+      "weightGsm": 210,
+      "purchaseCost": null,
+      "storageLocation": "Studio Scrap Box",
+      "notes": "Two rectangular offcuts from side cuts",
+      "source": "scrap",
+      "parentFabricId": "fabric-1792153488074-g0bwn",
+      "createdAt": "2026-10-16T12:24:48.350Z",
+      "updatedAt": "2026-10-16T12:24:48.350Z"
+    },
+    {
+      "id": "fabric-1792153488074-g0bwn",
+      "userId": "test-maker-1792153488015",
+      "name": "Deadstock Linen Slub",
+      "imageUrl": "https://images.unsplash.com/photo-1582533561751-ef6f6ab93a2e?auto=format&fit=crop&w=800&q=80",
+      "material": "linen",
+      "materialLabel": "100% Normandy Flax Linen",
+      "dominantColor": "Sage Green",
+      "secondaryColors": [
+        "Ecru",
+        "Olive"
+      ],
+      "pattern": "Slub Texture",
+      "dimensions": {
+        "length": 55,
+        "width": 42,
+        "unit": "cm"
+      },
+      "shape": "rectangular",
+      "totalQuantity": 2,
+      "reservedQuantity": 0,
+      "consumedQuantity": 2,
+      "availableQuantity": 0,
+      "condition": "new",
+      "conditionLabel": "Crisp Remnant",
+      "stretch": "none",
+      "thickness": "medium",
+      "weightGsm": 210,
+      "purchaseCost": 14.5,
+      "storageLocation": "Shelf 3",
+      "notes": "Updated dimension measurements after steam pressing",
+      "source": "purchased",
+      "parentFabricId": null,
+      "createdAt": "2026-10-16T12:24:48.074Z",
+      "updatedAt": "2026-10-16T12:24:48.347Z"
+    },
+    {
+      "id": "fabric-1792152836896-q32p7",
+      "userId": "test-maker-1792152836493",
+      "name": "Sage Green Offcut Scrap (25×18 cm)",
+      "imageUrl": "https://images.unsplash.com/photo-1582533561751-ef6f6ab93a2e?auto=format&fit=crop&w=800&q=80",
+      "material": "linen",
+      "materialLabel": "100% Normandy Flax Linen",
+      "dominantColor": "Sage Green",
+      "secondaryColors": [
+        "Ecru",
+        "Olive"
+      ],
+      "pattern": "Slub Texture",
+      "dimensions": {
+        "length": 25,
+        "width": 18,
+        "unit": "cm"
+      },
+      "shape": "irregular",
+      "totalQuantity": 2,
+      "reservedQuantity": 0,
+      "consumedQuantity": 0,
+      "availableQuantity": 2,
+      "condition": "good",
+      "conditionLabel": "Clean Offcut",
+      "stretch": "none",
+      "thickness": "medium",
+      "weightGsm": 210,
+      "purchaseCost": null,
+      "storageLocation": "Studio Scrap Box",
+      "notes": "Two rectangular offcuts from side cuts",
+      "source": "scrap",
+      "parentFabricId": "fabric-1792152836554-y7ztt",
+      "createdAt": "2026-10-16T12:13:56.896Z",
+      "updatedAt": "2026-10-16T12:13:56.896Z"
+    },
+    {
+      "id": "fabric-1792152836554-y7ztt",
+      "userId": "test-maker-1792152836493",
+      "name": "Deadstock Linen Slub",
+      "imageUrl": "https://images.unsplash.com/photo-1582533561751-ef6f6ab93a2e?auto=format&fit=crop&w=800&q=80",
+      "material": "linen",
+      "materialLabel": "100% Normandy Flax Linen",
+      "dominantColor": "Sage Green",
+      "secondaryColors": [
+        "Ecru",
+        "Olive"
+      ],
+      "pattern": "Slub Texture",
+      "dimensions": {
+        "length": 55,
+        "width": 42,
+        "unit": "cm"
+      },
+      "shape": "rectangular",
+      "totalQuantity": 2,
+      "reservedQuantity": 0,
+      "consumedQuantity": 2,
+      "availableQuantity": 0,
+      "condition": "new",
+      "conditionLabel": "Crisp Remnant",
+      "stretch": "none",
+      "thickness": "medium",
+      "weightGsm": 210,
+      "purchaseCost": 14.5,
+      "storageLocation": "Shelf 3",
+      "notes": "Updated dimension measurements after steam pressing",
+      "source": "purchased",
+      "parentFabricId": null,
+      "createdAt": "2026-10-16T12:13:56.554Z",
+      "updatedAt": "2026-10-16T12:13:56.892Z"
+    },
+    {
       "id": "fabric-1792078892918-1vd2z",
       "userId": "test-maker-1792078892550",
       "name": "Sage Green Offcut Scrap (25×18 cm)",
@@ -942,6 +1302,391 @@
   ],
   "projects": [
     {
+      "id": "proj-1792154132492-cw7et",
+      "userId": "test-maker-1792154132287",
+      "blueprintId": "idea-patchwork-tote",
+      "title": "Origami Boro Market Tote",
+      "subtitle": "",
+      "category": "Bags & Carry",
+      "difficulty": "Intermediate",
+      "timeEstimate": "2 Hours",
+      "imageUrl": "https://images.unsplash.com/photo-1582533561751-ef6f6ab93a2e?auto=format&fit=crop&w=800&q=80",
+      "fabricId": "fabric-1792154132350-x92lm",
+      "fabricAllocated": {
+        "length": 55,
+        "width": 42,
+        "unit": "cm",
+        "areaCm2": 2310
+      },
+      "fabricConsumed": {
+        "consumedQuantity": 1,
+        "consumedLength": 55,
+        "consumedWidth": 42,
+        "unit": "cm",
+        "confirmedAt": "2026-10-16T12:35:32.684Z"
+      },
+      "leftoversConfirmed": {
+        "confirmed": true,
+        "length": 25,
+        "width": 18,
+        "unit": "cm",
+        "pieces": 2,
+        "notes": "Two rectangular offcuts from side cuts",
+        "stashFabricId": "fabric-1792154132684-b2bym",
+        "recordedAt": "2026-10-16T12:35:32.687Z"
+      },
+      "status": "completed",
+      "isFavourite": true,
+      "materialsNeeded": [],
+      "toolsNeeded": [],
+      "steps": [
+        {
+          "step": 1,
+          "title": "Square remnant",
+          "description": "Press and align",
+          "tip": "",
+          "completed": true,
+          "completedAt": "2026-10-16T12:35:32.625Z"
+        },
+        {
+          "step": 2,
+          "title": "Cut panels",
+          "description": "Cut panels cleanly",
+          "tip": "",
+          "completed": false,
+          "completedAt": null
+        }
+      ],
+      "cuttingPlan": {
+        "patternPieces": [
+          {
+            "name": "Main Body",
+            "count": 2,
+            "width": 38,
+            "height": 28,
+            "unit": "cm"
+          }
+        ],
+        "seamAllowance": "1.0 cm"
+      },
+      "suitabilityReason": "",
+      "matchScore": 90,
+      "personalNotes": "",
+      "progressPhotos": [],
+      "startDate": "2026-10-16T12:35:32.625Z",
+      "completedDate": "2026-10-16T12:35:32.681Z",
+      "createdAt": "2026-10-16T12:35:32.492Z",
+      "updatedAt": "2026-10-16T12:35:32.681Z"
+    },
+    {
+      "id": "proj-1792153647208-zu3ce",
+      "userId": "test-maker-1792153647036",
+      "blueprintId": "idea-patchwork-tote",
+      "title": "Origami Boro Market Tote",
+      "subtitle": "",
+      "category": "Bags & Carry",
+      "difficulty": "Intermediate",
+      "timeEstimate": "2 Hours",
+      "imageUrl": "https://images.unsplash.com/photo-1582533561751-ef6f6ab93a2e?auto=format&fit=crop&w=800&q=80",
+      "fabricId": "fabric-1792153647096-lkm6s",
+      "fabricAllocated": {
+        "length": 55,
+        "width": 42,
+        "unit": "cm",
+        "areaCm2": 2310
+      },
+      "fabricConsumed": {
+        "consumedQuantity": 1,
+        "consumedLength": 55,
+        "consumedWidth": 42,
+        "unit": "cm",
+        "confirmedAt": "2026-10-16T12:27:27.398Z"
+      },
+      "leftoversConfirmed": {
+        "confirmed": true,
+        "length": 25,
+        "width": 18,
+        "unit": "cm",
+        "pieces": 2,
+        "notes": "Two rectangular offcuts from side cuts",
+        "stashFabricId": "fabric-1792153647398-jdquj",
+        "recordedAt": "2026-10-16T12:27:27.401Z"
+      },
+      "status": "completed",
+      "isFavourite": true,
+      "materialsNeeded": [],
+      "toolsNeeded": [],
+      "steps": [
+        {
+          "step": 1,
+          "title": "Square remnant",
+          "description": "Press and align",
+          "tip": "",
+          "completed": true,
+          "completedAt": "2026-10-16T12:27:27.344Z"
+        },
+        {
+          "step": 2,
+          "title": "Cut panels",
+          "description": "Cut panels cleanly",
+          "tip": "",
+          "completed": false,
+          "completedAt": null
+        }
+      ],
+      "cuttingPlan": {
+        "patternPieces": [
+          {
+            "name": "Main Body",
+            "count": 2,
+            "width": 38,
+            "height": 28,
+            "unit": "cm"
+          }
+        ],
+        "seamAllowance": "1.0 cm"
+      },
+      "suitabilityReason": "",
+      "matchScore": 90,
+      "personalNotes": "",
+      "progressPhotos": [],
+      "startDate": "2026-10-16T12:27:27.344Z",
+      "completedDate": "2026-10-16T12:27:27.395Z",
+      "createdAt": "2026-10-16T12:27:27.208Z",
+      "updatedAt": "2026-10-16T12:27:27.395Z"
+    },
+    {
+      "id": "proj-1792153609936-ojclq",
+      "userId": "test-maker-1792153609730",
+      "blueprintId": "idea-patchwork-tote",
+      "title": "Origami Boro Market Tote",
+      "subtitle": "",
+      "category": "Bags & Carry",
+      "difficulty": "Intermediate",
+      "timeEstimate": "2 Hours",
+      "imageUrl": "https://images.unsplash.com/photo-1582533561751-ef6f6ab93a2e?auto=format&fit=crop&w=800&q=80",
+      "fabricId": "fabric-1792153609784-pbfng",
+      "fabricAllocated": {
+        "length": 55,
+        "width": 42,
+        "unit": "cm",
+        "areaCm2": 2310
+      },
+      "fabricConsumed": {
+        "consumedQuantity": 1,
+        "consumedLength": 55,
+        "consumedWidth": 42,
+        "unit": "cm",
+        "confirmedAt": "2026-10-16T12:26:50.091Z"
+      },
+      "leftoversConfirmed": {
+        "confirmed": true,
+        "length": 25,
+        "width": 18,
+        "unit": "cm",
+        "pieces": 2,
+        "notes": "Two rectangular offcuts from side cuts",
+        "stashFabricId": "fabric-1792153610091-yowy7",
+        "recordedAt": "2026-10-16T12:26:50.094Z"
+      },
+      "status": "completed",
+      "isFavourite": true,
+      "materialsNeeded": [],
+      "toolsNeeded": [],
+      "steps": [
+        {
+          "step": 1,
+          "title": "Square remnant",
+          "description": "Press and align",
+          "tip": "",
+          "completed": true,
+          "completedAt": "2026-10-16T12:26:50.070Z"
+        },
+        {
+          "step": 2,
+          "title": "Cut panels",
+          "description": "Cut panels cleanly",
+          "tip": "",
+          "completed": false,
+          "completedAt": null
+        }
+      ],
+      "cuttingPlan": {
+        "patternPieces": [
+          {
+            "name": "Main Body",
+            "count": 2,
+            "width": 38,
+            "height": 28,
+            "unit": "cm"
+          }
+        ],
+        "seamAllowance": "1.0 cm"
+      },
+      "suitabilityReason": "",
+      "matchScore": 90,
+      "personalNotes": "",
+      "progressPhotos": [],
+      "startDate": "2026-10-16T12:26:50.070Z",
+      "completedDate": "2026-10-16T12:26:50.088Z",
+      "createdAt": "2026-10-16T12:26:49.936Z",
+      "updatedAt": "2026-10-16T12:26:50.088Z"
+    },
+    {
+      "id": "proj-1792153488189-nryxe",
+      "userId": "test-maker-1792153488015",
+      "blueprintId": "idea-patchwork-tote",
+      "title": "Origami Boro Market Tote",
+      "subtitle": "",
+      "category": "Bags & Carry",
+      "difficulty": "Intermediate",
+      "timeEstimate": "2 Hours",
+      "imageUrl": "https://images.unsplash.com/photo-1582533561751-ef6f6ab93a2e?auto=format&fit=crop&w=800&q=80",
+      "fabricId": "fabric-1792153488074-g0bwn",
+      "fabricAllocated": {
+        "length": 55,
+        "width": 42,
+        "unit": "cm",
+        "areaCm2": 2310
+      },
+      "fabricConsumed": {
+        "consumedQuantity": 1,
+        "consumedLength": 55,
+        "consumedWidth": 42,
+        "unit": "cm",
+        "confirmedAt": "2026-10-16T12:24:48.349Z"
+      },
+      "leftoversConfirmed": {
+        "confirmed": true,
+        "length": 25,
+        "width": 18,
+        "unit": "cm",
+        "pieces": 2,
+        "notes": "Two rectangular offcuts from side cuts",
+        "stashFabricId": "fabric-1792153488350-199h0",
+        "recordedAt": "2026-10-16T12:24:48.352Z"
+      },
+      "status": "completed",
+      "isFavourite": true,
+      "materialsNeeded": [],
+      "toolsNeeded": [],
+      "steps": [
+        {
+          "step": 1,
+          "title": "Square remnant",
+          "description": "Press and align",
+          "tip": "",
+          "completed": true,
+          "completedAt": "2026-10-16T12:24:48.305Z"
+        },
+        {
+          "step": 2,
+          "title": "Cut panels",
+          "description": "Cut panels cleanly",
+          "tip": "",
+          "completed": false,
+          "completedAt": null
+        }
+      ],
+      "cuttingPlan": {
+        "patternPieces": [
+          {
+            "name": "Main Body",
+            "count": 2,
+            "width": 38,
+            "height": 28,
+            "unit": "cm"
+          }
+        ],
+        "seamAllowance": "1.0 cm"
+      },
+      "suitabilityReason": "",
+      "matchScore": 90,
+      "personalNotes": "",
+      "progressPhotos": [],
+      "startDate": "2026-10-16T12:24:48.305Z",
+      "completedDate": "2026-10-16T12:24:48.347Z",
+      "createdAt": "2026-10-16T12:24:48.189Z",
+      "updatedAt": "2026-10-16T12:24:48.347Z"
+    },
+    {
+      "id": "proj-1792152836693-izorc",
+      "userId": "test-maker-1792152836493",
+      "blueprintId": "idea-patchwork-tote",
+      "title": "Origami Boro Market Tote",
+      "subtitle": "",
+      "category": "Bags & Carry",
+      "difficulty": "Intermediate",
+      "timeEstimate": "2 Hours",
+      "imageUrl": "https://images.unsplash.com/photo-1582533561751-ef6f6ab93a2e?auto=format&fit=crop&w=800&q=80",
+      "fabricId": "fabric-1792152836554-y7ztt",
+      "fabricAllocated": {
+        "length": 55,
+        "width": 42,
+        "unit": "cm",
+        "areaCm2": 2310
+      },
+      "fabricConsumed": {
+        "consumedQuantity": 1,
+        "consumedLength": 55,
+        "consumedWidth": 42,
+        "unit": "cm",
+        "confirmedAt": "2026-10-16T12:13:56.896Z"
+      },
+      "leftoversConfirmed": {
+        "confirmed": true,
+        "length": 25,
+        "width": 18,
+        "unit": "cm",
+        "pieces": 2,
+        "notes": "Two rectangular offcuts from side cuts",
+        "stashFabricId": "fabric-1792152836896-q32p7",
+        "recordedAt": "2026-10-16T12:13:56.899Z"
+      },
+      "status": "completed",
+      "isFavourite": true,
+      "materialsNeeded": [],
+      "toolsNeeded": [],
+      "steps": [
+        {
+          "step": 1,
+          "title": "Square remnant",
+          "description": "Press and align",
+          "tip": "",
+          "completed": true,
+          "completedAt": "2026-10-16T12:13:56.844Z"
+        },
+        {
+          "step": 2,
+          "title": "Cut panels",
+          "description": "Cut panels cleanly",
+          "tip": "",
+          "completed": false,
+          "completedAt": null
+        }
+      ],
+      "cuttingPlan": {
+        "patternPieces": [
+          {
+            "name": "Main Body",
+            "count": 2,
+            "width": 38,
+            "height": 28,
+            "unit": "cm"
+          }
+        ],
+        "seamAllowance": "1.0 cm"
+      },
+      "suitabilityReason": "",
+      "matchScore": 90,
+      "personalNotes": "",
+      "progressPhotos": [],
+      "startDate": "2026-10-16T12:13:56.844Z",
+      "completedDate": "2026-10-16T12:13:56.892Z",
+      "createdAt": "2026-10-16T12:13:56.693Z",
+      "updatedAt": "2026-10-16T12:13:56.892Z"
+    },
+    {
       "id": "proj-1792078892731-cyc6b",
       "userId": "test-maker-1792078892550",
       "blueprintId": "idea-patchwork-tote",
@@ -1790,6 +2535,96 @@
     }
   ],
   "sessions": [
+    {
+      "id": "sess-1792154132650-muhh",
+      "projectId": "proj-1792154132492-cw7et",
+      "userId": "test-maker-1792154132287",
+      "date": "2026-10-16",
+      "durationMinutes": 30,
+      "notes": "Joining side seams",
+      "createdAt": "2026-10-16T12:35:32.651Z"
+    },
+    {
+      "id": "sess-1792154132641-zq79",
+      "projectId": "proj-1792154132492-cw7et",
+      "userId": "test-maker-1792154132287",
+      "date": "2026-10-16",
+      "durationMinutes": 45,
+      "notes": "Cutting panels and pressing hems",
+      "createdAt": "2026-10-16T12:35:32.641Z"
+    },
+    {
+      "id": "sess-1792153647376-3l7v",
+      "projectId": "proj-1792153647208-zu3ce",
+      "userId": "test-maker-1792153647036",
+      "date": "2026-10-16",
+      "durationMinutes": 30,
+      "notes": "Joining side seams",
+      "createdAt": "2026-10-16T12:27:27.376Z"
+    },
+    {
+      "id": "sess-1792153647360-6gy4",
+      "projectId": "proj-1792153647208-zu3ce",
+      "userId": "test-maker-1792153647036",
+      "date": "2026-10-16",
+      "durationMinutes": 45,
+      "notes": "Cutting panels and pressing hems",
+      "createdAt": "2026-10-16T12:27:27.360Z"
+    },
+    {
+      "id": "sess-1792153610081-71b6",
+      "projectId": "proj-1792153609936-ojclq",
+      "userId": "test-maker-1792153609730",
+      "date": "2026-10-16",
+      "durationMinutes": 30,
+      "notes": "Joining side seams",
+      "createdAt": "2026-10-16T12:26:50.081Z"
+    },
+    {
+      "id": "sess-1792153610076-n7c8",
+      "projectId": "proj-1792153609936-ojclq",
+      "userId": "test-maker-1792153609730",
+      "date": "2026-10-16",
+      "durationMinutes": 45,
+      "notes": "Cutting panels and pressing hems",
+      "createdAt": "2026-10-16T12:26:50.076Z"
+    },
+    {
+      "id": "sess-1792153488328-enx2",
+      "projectId": "proj-1792153488189-nryxe",
+      "userId": "test-maker-1792153488015",
+      "date": "2026-10-16",
+      "durationMinutes": 30,
+      "notes": "Joining side seams",
+      "createdAt": "2026-10-16T12:24:48.328Z"
+    },
+    {
+      "id": "sess-1792153488313-hs3w",
+      "projectId": "proj-1792153488189-nryxe",
+      "userId": "test-maker-1792153488015",
+      "date": "2026-10-16",
+      "durationMinutes": 45,
+      "notes": "Cutting panels and pressing hems",
+      "createdAt": "2026-10-16T12:24:48.313Z"
+    },
+    {
+      "id": "sess-1792152836868-eb89",
+      "projectId": "proj-1792152836693-izorc",
+      "userId": "test-maker-1792152836493",
+      "date": "2026-10-16",
+      "durationMinutes": 30,
+      "notes": "Joining side seams",
+      "createdAt": "2026-10-16T12:13:56.868Z"
+    },
+    {
+      "id": "sess-1792152836860-na0x",
+      "projectId": "proj-1792152836693-izorc",
+      "userId": "test-maker-1792152836493",
+      "date": "2026-10-16",
+      "durationMinutes": 45,
+      "notes": "Cutting panels and pressing hems",
+      "createdAt": "2026-10-16T12:13:56.860Z"
+    },
     {
       "id": "sess-1792078892893-3gpy",
       "projectId": "proj-1792078892731-cyc6b",
@@ -2715,9 +3550,379 @@
       "areaCm2": 450,
       "notes": "Added fabric to inventory (scrap)",
       "timestamp": "2026-10-15T15:41:32.918Z"
+    },
+    {
+      "id": "mov-1792152836554-bket",
+      "fabricId": "fabric-1792152836554-y7ztt",
+      "projectId": null,
+      "userId": "test-maker-1792152836493",
+      "type": "addition",
+      "quantity": 2,
+      "areaCm2": 2000,
+      "notes": "Added fabric to inventory (purchased)",
+      "timestamp": "2026-10-16T12:13:56.554Z"
+    },
+    {
+      "id": "mov-1792152836598-av7l",
+      "fabricId": "fabric-1792152836554-y7ztt",
+      "projectId": "proj-test-1",
+      "userId": "test-maker-1792152836493",
+      "type": "reservation",
+      "quantity": 1,
+      "areaCm2": 2310,
+      "notes": "Reserved for project #proj-test-1",
+      "timestamp": "2026-10-16T12:13:56.598Z"
+    },
+    {
+      "id": "mov-1792152836631-b3rs",
+      "fabricId": "fabric-1792152836554-y7ztt",
+      "projectId": "proj-test-1",
+      "userId": "test-maker-1792152836493",
+      "type": "consumption",
+      "quantity": 1,
+      "areaCm2": 2310,
+      "notes": "Consumed by project #proj-test-1",
+      "timestamp": "2026-10-16T12:13:56.631Z"
+    },
+    {
+      "id": "mov-1792152836693-ctzo",
+      "fabricId": "fabric-1792152836554-y7ztt",
+      "projectId": "proj-1792152836693-izorc",
+      "userId": "test-maker-1792152836493",
+      "type": "reservation",
+      "quantity": 1,
+      "areaCm2": 2310,
+      "notes": "Reserved for project #proj-1792152836693-izorc",
+      "timestamp": "2026-10-16T12:13:56.693Z"
+    },
+    {
+      "id": "mov-1792152836892-r3rg",
+      "fabricId": "fabric-1792152836554-y7ztt",
+      "projectId": "proj-1792152836693-izorc",
+      "userId": "test-maker-1792152836493",
+      "type": "consumption",
+      "quantity": 1,
+      "areaCm2": 2310,
+      "notes": "Consumed by project #proj-1792152836693-izorc",
+      "timestamp": "2026-10-16T12:13:56.892Z"
+    },
+    {
+      "id": "mov-1792152836896-n7bu",
+      "fabricId": "fabric-1792152836896-q32p7",
+      "projectId": null,
+      "userId": "test-maker-1792152836493",
+      "type": "addition",
+      "quantity": 2,
+      "areaCm2": 450,
+      "notes": "Added fabric to inventory (scrap)",
+      "timestamp": "2026-10-16T12:13:56.896Z"
+    },
+    {
+      "id": "mov-1792153488074-jusq",
+      "fabricId": "fabric-1792153488074-g0bwn",
+      "projectId": null,
+      "userId": "test-maker-1792153488015",
+      "type": "addition",
+      "quantity": 2,
+      "areaCm2": 2000,
+      "notes": "Added fabric to inventory (purchased)",
+      "timestamp": "2026-10-16T12:24:48.074Z"
+    },
+    {
+      "id": "mov-1792153488110-l408",
+      "fabricId": "fabric-1792153488074-g0bwn",
+      "projectId": "proj-test-1",
+      "userId": "test-maker-1792153488015",
+      "type": "reservation",
+      "quantity": 1,
+      "areaCm2": 2310,
+      "notes": "Reserved for project #proj-test-1",
+      "timestamp": "2026-10-16T12:24:48.110Z"
+    },
+    {
+      "id": "mov-1792153488146-v9s5",
+      "fabricId": "fabric-1792153488074-g0bwn",
+      "projectId": "proj-test-1",
+      "userId": "test-maker-1792153488015",
+      "type": "consumption",
+      "quantity": 1,
+      "areaCm2": 2310,
+      "notes": "Consumed by project #proj-test-1",
+      "timestamp": "2026-10-16T12:24:48.146Z"
+    },
+    {
+      "id": "mov-1792153488189-203p",
+      "fabricId": "fabric-1792153488074-g0bwn",
+      "projectId": "proj-1792153488189-nryxe",
+      "userId": "test-maker-1792153488015",
+      "type": "reservation",
+      "quantity": 1,
+      "areaCm2": 2310,
+      "notes": "Reserved for project #proj-1792153488189-nryxe",
+      "timestamp": "2026-10-16T12:24:48.189Z"
+    },
+    {
+      "id": "mov-1792153488347-st1a",
+      "fabricId": "fabric-1792153488074-g0bwn",
+      "projectId": "proj-1792153488189-nryxe",
+      "userId": "test-maker-1792153488015",
+      "type": "consumption",
+      "quantity": 1,
+      "areaCm2": 2310,
+      "notes": "Consumed by project #proj-1792153488189-nryxe",
+      "timestamp": "2026-10-16T12:24:48.347Z"
+    },
+    {
+      "id": "mov-1792153488350-v3wg",
+      "fabricId": "fabric-1792153488350-199h0",
+      "projectId": null,
+      "userId": "test-maker-1792153488015",
+      "type": "addition",
+      "quantity": 2,
+      "areaCm2": 450,
+      "notes": "Added fabric to inventory (scrap)",
+      "timestamp": "2026-10-16T12:24:48.350Z"
+    },
+    {
+      "id": "mov-1792153609784-81zi",
+      "fabricId": "fabric-1792153609784-pbfng",
+      "projectId": null,
+      "userId": "test-maker-1792153609730",
+      "type": "addition",
+      "quantity": 2,
+      "areaCm2": 2000,
+      "notes": "Added fabric to inventory (purchased)",
+      "timestamp": "2026-10-16T12:26:49.784Z"
+    },
+    {
+      "id": "mov-1792153609841-6gxt",
+      "fabricId": "fabric-1792153609784-pbfng",
+      "projectId": "proj-test-1",
+      "userId": "test-maker-1792153609730",
+      "type": "reservation",
+      "quantity": 1,
+      "areaCm2": 2310,
+      "notes": "Reserved for project #proj-test-1",
+      "timestamp": "2026-10-16T12:26:49.841Z"
+    },
+    {
+      "id": "mov-1792153609866-bekn",
+      "fabricId": "fabric-1792153609784-pbfng",
+      "projectId": "proj-test-1",
+      "userId": "test-maker-1792153609730",
+      "type": "consumption",
+      "quantity": 1,
+      "areaCm2": 2310,
+      "notes": "Consumed by project #proj-test-1",
+      "timestamp": "2026-10-16T12:26:49.866Z"
+    },
+    {
+      "id": "mov-1792153609936-p9ou",
+      "fabricId": "fabric-1792153609784-pbfng",
+      "projectId": "proj-1792153609936-ojclq",
+      "userId": "test-maker-1792153609730",
+      "type": "reservation",
+      "quantity": 1,
+      "areaCm2": 2310,
+      "notes": "Reserved for project #proj-1792153609936-ojclq",
+      "timestamp": "2026-10-16T12:26:49.936Z"
+    },
+    {
+      "id": "mov-1792153610088-n6kq",
+      "fabricId": "fabric-1792153609784-pbfng",
+      "projectId": "proj-1792153609936-ojclq",
+      "userId": "test-maker-1792153609730",
+      "type": "consumption",
+      "quantity": 1,
+      "areaCm2": 2310,
+      "notes": "Consumed by project #proj-1792153609936-ojclq",
+      "timestamp": "2026-10-16T12:26:50.088Z"
+    },
+    {
+      "id": "mov-1792153610091-qv4o",
+      "fabricId": "fabric-1792153610091-yowy7",
+      "projectId": null,
+      "userId": "test-maker-1792153609730",
+      "type": "addition",
+      "quantity": 2,
+      "areaCm2": 450,
+      "notes": "Added fabric to inventory (scrap)",
+      "timestamp": "2026-10-16T12:26:50.091Z"
+    },
+    {
+      "id": "mov-1792153647096-lpqm",
+      "fabricId": "fabric-1792153647096-lkm6s",
+      "projectId": null,
+      "userId": "test-maker-1792153647036",
+      "type": "addition",
+      "quantity": 2,
+      "areaCm2": 2000,
+      "notes": "Added fabric to inventory (purchased)",
+      "timestamp": "2026-10-16T12:27:27.096Z"
+    },
+    {
+      "id": "mov-1792153647134-27eg",
+      "fabricId": "fabric-1792153647096-lkm6s",
+      "projectId": "proj-test-1",
+      "userId": "test-maker-1792153647036",
+      "type": "reservation",
+      "quantity": 1,
+      "areaCm2": 2310,
+      "notes": "Reserved for project #proj-test-1",
+      "timestamp": "2026-10-16T12:27:27.134Z"
+    },
+    {
+      "id": "mov-1792153647158-gf52",
+      "fabricId": "fabric-1792153647096-lkm6s",
+      "projectId": "proj-test-1",
+      "userId": "test-maker-1792153647036",
+      "type": "consumption",
+      "quantity": 1,
+      "areaCm2": 2310,
+      "notes": "Consumed by project #proj-test-1",
+      "timestamp": "2026-10-16T12:27:27.158Z"
+    },
+    {
+      "id": "mov-1792153647208-yl7w",
+      "fabricId": "fabric-1792153647096-lkm6s",
+      "projectId": "proj-1792153647208-zu3ce",
+      "userId": "test-maker-1792153647036",
+      "type": "reservation",
+      "quantity": 1,
+      "areaCm2": 2310,
+      "notes": "Reserved for project #proj-1792153647208-zu3ce",
+      "timestamp": "2026-10-16T12:27:27.208Z"
+    },
+    {
+      "id": "mov-1792153647395-up2f",
+      "fabricId": "fabric-1792153647096-lkm6s",
+      "projectId": "proj-1792153647208-zu3ce",
+      "userId": "test-maker-1792153647036",
+      "type": "consumption",
+      "quantity": 1,
+      "areaCm2": 2310,
+      "notes": "Consumed by project #proj-1792153647208-zu3ce",
+      "timestamp": "2026-10-16T12:27:27.395Z"
+    },
+    {
+      "id": "mov-1792153647398-lrhx",
+      "fabricId": "fabric-1792153647398-jdquj",
+      "projectId": null,
+      "userId": "test-maker-1792153647036",
+      "type": "addition",
+      "quantity": 2,
+      "areaCm2": 450,
+      "notes": "Added fabric to inventory (scrap)",
+      "timestamp": "2026-10-16T12:27:27.398Z"
+    },
+    {
+      "id": "mov-1792154132350-5e3h",
+      "fabricId": "fabric-1792154132350-x92lm",
+      "projectId": null,
+      "userId": "test-maker-1792154132287",
+      "type": "addition",
+      "quantity": 2,
+      "areaCm2": 2000,
+      "notes": "Added fabric to inventory (purchased)",
+      "timestamp": "2026-10-16T12:35:32.350Z"
+    },
+    {
+      "id": "mov-1792154132394-pxc6",
+      "fabricId": "fabric-1792154132350-x92lm",
+      "projectId": "proj-test-1",
+      "userId": "test-maker-1792154132287",
+      "type": "reservation",
+      "quantity": 1,
+      "areaCm2": 2310,
+      "notes": "Reserved for project #proj-test-1",
+      "timestamp": "2026-10-16T12:35:32.394Z"
+    },
+    {
+      "id": "mov-1792154132428-0bby",
+      "fabricId": "fabric-1792154132350-x92lm",
+      "projectId": "proj-test-1",
+      "userId": "test-maker-1792154132287",
+      "type": "consumption",
+      "quantity": 1,
+      "areaCm2": 2310,
+      "notes": "Consumed by project #proj-test-1",
+      "timestamp": "2026-10-16T12:35:32.428Z"
+    },
+    {
+      "id": "mov-1792154132492-qoa6",
+      "fabricId": "fabric-1792154132350-x92lm",
+      "projectId": "proj-1792154132492-cw7et",
+      "userId": "test-maker-1792154132287",
+      "type": "reservation",
+      "quantity": 1,
+      "areaCm2": 2310,
+      "notes": "Reserved for project #proj-1792154132492-cw7et",
+      "timestamp": "2026-10-16T12:35:32.492Z"
+    },
+    {
+      "id": "mov-1792154132681-wsss",
+      "fabricId": "fabric-1792154132350-x92lm",
+      "projectId": "proj-1792154132492-cw7et",
+      "userId": "test-maker-1792154132287",
+      "type": "consumption",
+      "quantity": 1,
+      "areaCm2": 2310,
+      "notes": "Consumed by project #proj-1792154132492-cw7et",
+      "timestamp": "2026-10-16T12:35:32.681Z"
+    },
+    {
+      "id": "mov-1792154132684-5toi",
+      "fabricId": "fabric-1792154132684-b2bym",
+      "projectId": null,
+      "userId": "test-maker-1792154132287",
+      "type": "addition",
+      "quantity": 2,
+      "areaCm2": 450,
+      "notes": "Added fabric to inventory (scrap)",
+      "timestamp": "2026-10-16T12:35:32.684Z"
     }
   ],
   "shares": [
+    {
+      "token": "share_1792154132581_4gql20iwhq18qz4x",
+      "projectId": "proj-1792154132492-cw7et",
+      "userId": "test-maker-1792154132287",
+      "isRevoked": true,
+      "createdAt": "2026-10-16T12:35:32.581Z",
+      "revokedAt": "2026-10-16T12:35:32.601Z"
+    },
+    {
+      "token": "share_1792153647280_iy04792dpeps5nhe",
+      "projectId": "proj-1792153647208-zu3ce",
+      "userId": "test-maker-1792153647036",
+      "isRevoked": true,
+      "createdAt": "2026-10-16T12:27:27.280Z",
+      "revokedAt": "2026-10-16T12:27:27.311Z"
+    },
+    {
+      "token": "share_1792153610024_6mz1fvsq1v3988cg",
+      "projectId": "proj-1792153609936-ojclq",
+      "userId": "test-maker-1792153609730",
+      "isRevoked": true,
+      "createdAt": "2026-10-16T12:26:50.024Z",
+      "revokedAt": "2026-10-16T12:26:50.038Z"
+    },
+    {
+      "token": "share_1792153488265_hkbhswguaqduzbn7",
+      "projectId": "proj-1792153488189-nryxe",
+      "userId": "test-maker-1792153488015",
+      "isRevoked": true,
+      "createdAt": "2026-10-16T12:24:48.265Z",
+      "revokedAt": "2026-10-16T12:24:48.297Z"
+    },
+    {
+      "token": "share_1792152836781_lrur3fj4h0zdr01d",
+      "projectId": "proj-1792152836693-izorc",
+      "userId": "test-maker-1792152836493",
+      "isRevoked": true,
+      "createdAt": "2026-10-16T12:13:56.781Z",
+      "revokedAt": "2026-10-16T12:13:56.812Z"
+    },
     {
       "token": "share_1792078892815_2bx5xv3varvu4di9",
       "projectId": "proj-1792078892731-cyc6b",

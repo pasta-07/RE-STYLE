@@ -184,7 +184,7 @@ export const ImpactSection: React.FC = () => {
             <Sparkles className="w-6 h-6 text-coral mx-auto mb-3" />
             <h4 className="font-serif text-lg font-bold text-paper">Generative Craft</h4>
             <p className="text-xs text-paper/80 mt-2 leading-relaxed">
-              ReStylee pairs algorithmic cutting geometry with warm human artisanal sewing guidance.
+              Re:Style pairs algorithmic cutting geometry with warm human artisanal sewing guidance.
             </p>
           </div>
 

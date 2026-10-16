@@ -17,6 +17,8 @@ import { SAMPLE_FABRICS } from '../data/mockFabrics';
 import type { FabricSample } from '../data/mockFabrics';
 import { inspectFabricImage } from '../api/generateDesigns';
 import { extractColorsFromDataUrl } from '../utils/colorExtractor';
+import { UPCYCLING_IDEAS } from '../data/upcyclingIdeas';
+import { evaluateFabricFeasibility } from '../utils/fabricFeasibility';
 
 interface FabricStudioProps {
   currentFabric: FabricSample;
@@ -47,6 +49,35 @@ export const FabricStudio: React.FC<FabricStudioProps> = ({
   const height = currentFabric.dimensions.height;
   const unit = currentFabric.dimensions.unit;
   const condition = currentFabric.condition;
+
+  // Dynamic Pattern Engine Strategy derived from current fabric metrics and matching catalog projects
+  const strategySummary = React.useMemo(() => {
+    const w = currentFabric.dimensions.width;
+    const h = currentFabric.dimensions.height;
+    const u = currentFabric.dimensions.unit;
+    const gsm = currentFabric.weightGsm || 200;
+
+    const evaluated = UPCYCLING_IDEAS.map(idea => ({
+      title: idea.title,
+      feasibility: evaluateFabricFeasibility(idea, currentFabric)
+    }));
+
+    const directlyMatched = evaluated.filter(e => e.feasibility.isDirectlyMatched).map(e => e.title);
+    const requiresMod = evaluated.filter(e => !e.feasibility.isDirectlyMatched).map(e => e.title);
+
+    let strategy = `Calculated 2D layout for ${currentFabric.name} (${w}×${h} ${u}, ~${gsm} GSM): `;
+    if (directlyMatched.length > 0) {
+      strategy += `${directlyMatched.length} project${directlyMatched.length === 1 ? '' : 's'} fit directly without extra yardage (${directlyMatched.slice(0, 3).join(', ')}${directlyMatched.length > 3 ? `, +${directlyMatched.length - 3} more` : ''}). `;
+    } else {
+      strategy += `No standard blueprints fit this remnant directly without piecing. `;
+    }
+
+    if (requiresMod.length > 0) {
+      strategy += `${requiresMod.length} project${requiresMod.length === 1 ? '' : 's'} (${requiresMod.slice(0, 2).join(', ')}) require modular piecing or separate backing fabric.`;
+    }
+
+    return strategy;
+  }, [currentFabric]);
 
   // Handle unit conversion correctly preserving physical dimension
   const handleUnitToggle = (newUnit: 'cm' | 'in') => {
@@ -454,19 +485,24 @@ export const FabricStudio: React.FC<FabricStudioProps> = ({
                 )}
               </div>
 
-              {/* Action buttons under dropzone */}
-              <div className="mt-4 flex items-center justify-between text-xs text-charcoal-muted">
-                <span className="flex items-center gap-1">
-                  <Eye className="w-3.5 h-3.5 text-denim" />
-                  Visual prototype preview (no live AI upload required)
-                </span>
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="text-navy hover:text-coral font-medium transition-colors underline focus:outline-none focus-visible:ring-1 focus-visible:ring-denim"
-                >
-                  Upload custom file
-                </button>
+              {/* Uploaded swatch workflow transparency */}
+              <div className="mt-4 space-y-2">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-charcoal-muted bg-paper-100 p-3 rounded-xl border border-navy/10">
+                  <div className="flex items-center gap-1.5 text-navy font-medium">
+                    <Eye className="w-3.5 h-3.5 text-coral" />
+                    <span>Photo Analyzed: Visual Swatch, Color Palette & Weave Grain</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="text-navy hover:text-coral font-bold transition-colors underline focus:outline-none text-xs self-start sm:self-auto"
+                  >
+                    Upload Custom Photo
+                  </button>
+                </div>
+                <p className="text-[10px] text-charcoal-muted leading-tight px-1">
+                  Note: Camera photos provide color and texture extraction. Physical remnant dimensions (width × length) must be confirmed in the Textile Parameters panel to calculate cutting fit.
+                </p>
               </div>
 
             </div>
@@ -617,17 +653,9 @@ export const FabricStudio: React.FC<FabricStudioProps> = ({
                     </div>
                   </div>
 
-                  <div className="bg-coral/5 border border-coral/20 rounded-lg p-2 text-[11px] text-navy">
+                  <div className="bg-coral/5 border border-coral/20 rounded-lg p-2.5 text-[11px] text-navy">
                     <span className="font-semibold text-coral-dark">Pattern Engine Strategy: </span>
-                    <span className="text-charcoal">
-                      {currentFabric.archetype === 'lace-sheer' && 'Prioritizing scalloped selvedge preservation, sheer camisoles, and delicate pouch silhouettes.'}
-                      {currentFabric.archetype === 'corduroy-velvet' && 'Aligning wale direction along warp grain for boxy overshirts, structural shackets, and padded pouches.'}
-                      {currentFabric.archetype === 'denim-workwear' && 'Reinforced flat-felled zero-waste panels for chore work jackets, tool aprons, and modular utility rigs.'}
-                      {currentFabric.archetype === 'silk-satin' && 'Bias-cut drape optimization for cowl-neck blouses, bias slips, and knot bags.'}
-                      {currentFabric.archetype === 'linen-slub' && 'Architectural square-cut kimono jackets, wrap vests, and breathable carryall market totes.'}
-                      {currentFabric.archetype === 'wool-tweed' && 'Structured thermal waistcoats, tailored boxy vests, and structured outerwear.'}
-                      {(!currentFabric.archetype || currentFabric.archetype === 'cotton-handloom') && 'Geometric origami cutting for tunics, modular bucket hats, and envelope clutches.'}
-                    </span>
+                    <span className="text-charcoal leading-relaxed">{strategySummary}</span>
                   </div>
                 </div>
               </div>

@@ -15,15 +15,15 @@ export const MASTER_PROJECT_CATALOG = [
     difficulty: 'Intermediate',
     timeEstimate: '1–3 hours',
     timeMinutes: 120,
-    minDimensions: { length: 40, width: 30, unit: 'cm' },
-    minAreaCm2: 1200,
+    minDimensions: { length: 56, width: 34, unit: 'cm' },
+    minAreaCm2: 1904,
     requiredTools: ['Fabric shears or rotary cutter', 'Sewing machine', 'Steam iron & pressing cloth'],
     optionalTools: ['Tailor chalk & clear acrylic ruler', 'Wonder clips'],
     materialsNeeded: [
-      { name: 'Main textile remnant (front & back body)', required: true },
-      { name: 'Lining scrap or contrast offcut (approx 35×25 cm)', required: false },
+      { name: 'Main textile remnant: 2 outer panels (28×34 cm)', required: true },
+      { name: 'Lining panels: 2x 28×34 cm from separate cotton supply', required: false },
       { name: 'Heavy-duty cotton or poly thread', required: true },
-      { name: 'Cotton webbing straps or self-fabric bias strips (2x 50 cm)', required: true }
+      { name: 'Cotton webbing straps or self-fabric strips (2x 45 cm)', required: true }
     ],
     suitableFibers: ['denim', 'cotton', 'canvas', 'linen', 'twill', 'corduroy', 'wool', 'blend'],
     incompatibleFibers: ['silk', 'chiffon', 'lace'],
@@ -32,19 +32,19 @@ export const MASTER_PROJECT_CATALOG = [
     imageUrl: '/blueprints/belgian-slub-linen-weekend-carryall.jpg',
     cuttingPlan: {
       patternPieces: [
-        { name: 'Main Body Outer Panel (Front)', count: 1, width: 38, height: 28, unit: 'cm', notes: 'Grain parallel to warp' },
-        { name: 'Main Body Outer Panel (Back)', count: 1, width: 38, height: 28, unit: 'cm', notes: 'Grain parallel to warp' },
+        { name: 'Main Body Outer Panel (Front)', count: 1, width: 28, height: 34, unit: 'cm', notes: 'Grain parallel to warp' },
+        { name: 'Main Body Outer Panel (Back)', count: 1, width: 28, height: 34, unit: 'cm', notes: 'Grain parallel to warp' },
         { name: 'Interior Drop Pocket', count: 1, width: 14, height: 12, unit: 'cm', notes: 'Cut from leftover corner' },
-        { name: 'Reinforced Handle Straps', count: 2, width: 45, height: 4, unit: 'cm', notes: 'Fold four-fold & edge-stitch' }
+        { name: 'Reinforced Handle Straps', count: 2, width: 38, height: 4, unit: 'cm', notes: 'Fold four-fold & edge-stitch' }
       ],
       seamAllowance: '1.0 cm (3/8 in) included on all edges',
       grainline: 'Parallel to selvedge or warp weave',
-      cuttingOrder: ['1. Square remnant edges', '2. Cut 2x main body panels', '3. Slice strap lengths from edge strip', '4. Cut interior pocket from corner remainder'],
-      remainingFabricNotes: 'Generates approx ~150 cm² offcut strip suitable for matching key fob or coaster.'
+      cuttingOrder: ['1. Square remnant edges', '2. Cut 2x main body panels (28×34 cm)', '3. Slice strap lengths from edge strip', '4. Cut interior pocket from corner remainder'],
+      remainingFabricNotes: 'Zero-waste grid: side-by-side layout utilizes full width of 60×40 cm remnants.'
     },
     steps: [
       { step: 1, title: 'Square & press remnant', description: 'Align weave grainline against cutting mat and release fold creases with steam.', tip: 'Use tailor chalk to establish a true 90-degree right angle before cutting.' },
-      { step: 2, title: 'Geometric cutting layout', description: 'Cut two 38×28 cm outer panels, then slice strap strips from the remaining length.', tip: 'Keep selvedge edges intact where possible for clean self-finished seams.' },
+      { step: 2, title: 'Geometric cutting layout', description: 'Cut two 28×34 cm outer panels, then slice strap strips from the remaining length.', tip: 'Keep selvedge edges intact where possible for clean self-finished seams.' },
       { step: 3, title: 'Assemble drop pocket & straps', description: 'Double-fold pocket hem and stitch to interior panel; fold strap edges inward and topstitch.', tip: 'Reinforce strap attachment with a secure box-X stitch.' },
       { step: 4, title: 'Join side & base seams', description: 'Stitch sides and lower edge using French seams or mock-overlock for durable raw-edge enclosure.', tip: 'Box the bottom corners 4 cm to give the tote three-dimensional standing volume.' },
       { step: 5, title: 'Hem top rim & steam finish', description: 'Fold top rim 2.5 cm to the inside enclosing strap ends, edge-stitch, and press thoroughly.' }

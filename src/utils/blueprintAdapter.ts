@@ -1,6 +1,7 @@
 import type { DesignConcept } from '../api/generateDesigns';
 import type { UpcycleIdea, StepInstruction, BlueprintCategory } from '../data/upcyclingIdeas';
 import type { FabricSample } from '../data/mockFabrics';
+import { getFabricSewingSpecs } from './fabricFeasibility';
 
 // Item-type classification keys
 type ProductItemType = 
@@ -928,12 +929,16 @@ export function convertDesignConceptToUpcycleIdea(
         'Essential hardware or closure (brass snap, elastic, or webbing)'
       ];
 
+  const fabricSpecs = getFabricSewingSpecs(fabric);
+
   const toolsNeeded: string[] = (concept.toolsNeeded && concept.toolsNeeded.length > 0)
     ? concept.toolsNeeded
     : [
         'Fabric shears or rotary cutter',
         "Tailor's chalk & clear acrylic ruler",
-        'Sewing machine or hand-stitching needles',
+        `Sewing machine (${fabricSpecs.needle}) or hand-stitching needle`,
+        fabricSpecs.thread,
+        fabricSpecs.presserFoot,
         'Steam iron & pressing cloth',
         'Wonder clips or fine glass-head pins'
       ];

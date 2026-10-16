@@ -41,7 +41,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
               className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-bluegray border border-navy/15 text-navy text-xs font-mono tracking-wider uppercase"
             >
               <Sparkles className="w-3.5 h-3.5 text-coral" />
-              <span>Interactive Circular Pattern Studio & Demo Simulator</span>
+              <span>Interactive Circular Pattern Studio & 2D Cutting Simulator</span>
             </motion.div>
 
             {/* Main Editorial Title */}
@@ -88,7 +88,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
               </button>
             </motion.div>
 
-            {/* Quick Metrics Bar with Actual Data */}
+            {/* Quick Metrics Bar with Verified Definitions */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -96,16 +96,19 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
               className="pt-6 border-t border-navy/10 grid grid-cols-3 gap-4 max-w-lg"
             >
               <div>
-                <span className="block font-serif text-2xl sm:text-3xl font-bold text-navy">0%</span>
-                <span className="text-xs text-charcoal-muted font-sans">Zero Waste Target</span>
+                <span className="block font-serif text-2xl sm:text-3xl font-bold text-navy">100%</span>
+                <span className="text-xs text-navy font-semibold font-sans block">Remnant Diversion Target</span>
+                <span className="text-[10px] text-charcoal-muted font-sans block">Zero textile scrap to landfill</span>
               </div>
               <div>
                 <span className="block font-serif text-2xl sm:text-3xl font-bold text-navy">~2.8k L</span>
-                <span className="text-xs text-charcoal-muted font-sans">Est. Water Saved/kg</span>
+                <span className="text-xs text-navy font-semibold font-sans block">Est. Water Saved/kg</span>
+                <span className="text-[10px] text-charcoal-muted font-sans block">Offset vs virgin production</span>
               </div>
               <div>
                 <span className="block font-serif text-2xl sm:text-3xl font-bold text-navy">{blueprintCount}</span>
-                <span className="text-xs text-charcoal-muted font-sans">Active Blueprints</span>
+                <span className="text-xs text-navy font-semibold font-sans block">Tested Blueprints</span>
+                <span className="text-[10px] text-charcoal-muted font-sans block">Deterministic 2D layouts</span>
               </div>
             </motion.div>
 
@@ -191,8 +194,8 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
               {/* Verified Circular Stamp */}
               <div className="absolute -top-4 -right-4 sm:-right-6 w-20 h-20 rounded-full bg-coral text-paper flex flex-col items-center justify-center p-2 text-center shadow-lg rotate-12 border-2 border-paper">
                 <span className="text-[9px] font-mono tracking-widest uppercase font-bold">CIRCULAR</span>
-                <span className="font-serif text-xs font-bold leading-none">100%</span>
-                <span className="text-[8px] font-sans opacity-90">REPURPOSED</span>
+                <span className="font-serif text-[11px] font-bold leading-tight">ATELIER</span>
+                <span className="text-[8px] font-sans opacity-95">ZERO WASTE</span>
               </div>
 
             </motion.div>
