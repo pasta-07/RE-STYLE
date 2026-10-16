@@ -1,7 +1,7 @@
 # 🌿 Re:Style 2.0 — AI Circular Fashion Atelier & Sustainable Maker Platform
 
 [![CI Verification](https://github.com/pasta-07/RE-STYLE/actions/workflows/ci.yml/badge.svg)](https://github.com/pasta-07/RE-STYLE/actions/workflows/ci.yml)
-[![Live Production](https://img.shields.io/badge/Vercel-Live%20Demo-253247?logo=vercel)](https://fleet-khaki-pgud4ad.vercel.app)
+[![Version](https://img.shields.io/badge/Release-v2.0.0-6366f1.svg)](package.json)
 [![Tests](https://img.shields.io/badge/Tests-19%2F19%20Passed-emerald)](tests/re_style_2.test.js)
 
 An AI-augmented creative atelier, textile scrap inventory, and circular pattern generator transforming fabric remnants into bespoke zero-waste goods. Powered by **Google Gemini Multimodal Vision**, **TinyFish Real-Time Trend Research**, **PDFKit Editorial Export**, and **React 19 + TypeScript + Express 5**.
