@@ -20,6 +20,7 @@ import type { UpcycleIdea } from '../data/upcyclingIdeas';
 import type { FabricSample } from '../data/mockFabrics';
 import { pickCuratedCatalogImage } from '../utils/blueprintAdapter';
 import { evaluateFabricFeasibility, type CuttingLayoutResult } from '../utils/fabricFeasibility';
+import { generateProjectPreview } from '../api/generateDesigns';
 
 export type CatalogSourceFilter = 'ai' | 'all' | 'curated';
 
@@ -27,17 +28,66 @@ const getSafeImageUrl = (idea: UpcycleIdea, currentFabric: FabricSample): string
   return pickCuratedCatalogImage(idea, currentFabric, 0);
 };
 
+const NeutralBlueprintPlaceholder: React.FC<{
+  title: string;
+  fabric: FabricSample;
+  onGeneratePreview?: () => void;
+  isGenerating?: boolean;
+}> = ({ title, fabric, onGeneratePreview, isGenerating }) => (
+  <div className="relative w-full h-full bg-slate-900 flex flex-col items-center justify-center p-6 text-center text-slate-300">
+    <div className="absolute inset-0 opacity-15 bg-[radial-gradient(#38bdf8_1px,transparent_1px)] [background-size:16px_16px]" />
+    <div className="relative z-10 flex flex-col items-center gap-2 max-w-xs">
+      <div className="w-10 h-10 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-400 shadow-inner">
+        <Scissors className="w-5 h-5 text-sky-400" />
+      </div>
+      <span className="text-[11px] font-mono font-bold tracking-wider uppercase text-sky-300">
+        Pattern Blueprint Schematic
+      </span>
+      <p className="text-xs text-slate-300 font-serif line-clamp-2">
+        {title}
+      </p>
+      <span className="inline-block text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800/80 text-slate-400 border border-slate-700">
+        Target Palette: {fabric.dominantColor || 'Natural'} • {fabric.material || 'Textile'}
+      </span>
+      {fabric.imageUrl && onGeneratePreview && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onGeneratePreview();
+          }}
+          disabled={isGenerating}
+          className="mt-2 text-[10px] font-mono px-3 py-1 rounded-full bg-sky-500/20 hover:bg-sky-500/30 text-sky-200 border border-sky-400/30 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+        >
+          <Sparkles className={`w-3 h-3 text-sky-300 ${isGenerating ? 'animate-spin' : ''}`} />
+          <span>{isGenerating ? 'Synthesizing Concept...' : 'Generate AI Preview'}</span>
+        </button>
+      )}
+    </div>
+  </div>
+);
+
 const IdeaCardImage: React.FC<{
   idea: UpcycleIdea;
   currentFabric: FabricSample;
-}> = ({ idea, currentFabric }) => {
-  const [imgSrc, setImgSrc] = useState<string>(() => getSafeImageUrl(idea, currentFabric));
+  onPreviewGenerated?: (previewUrl: string) => void;
+}> = ({ idea, currentFabric, onPreviewGenerated }) => {
+  const [imgSrc, setImgSrc] = useState<string>(() => {
+    if (idea.imageUrl && !idea.imageUrl.includes('pollinations.ai')) return idea.imageUrl;
+    return getSafeImageUrl(idea, currentFabric);
+  });
   const [isLoaded, setIsLoaded] = useState(false);
+  const [hasError, setHasError] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
 
   useEffect(() => {
-    const nextSrc = getSafeImageUrl(idea, currentFabric);
-    setImgSrc(nextSrc);
+    if (idea.imageUrl && !idea.imageUrl.includes('pollinations.ai')) {
+      setImgSrc(idea.imageUrl);
+    } else {
+      setImgSrc(getSafeImageUrl(idea, currentFabric));
+    }
     setIsLoaded(false);
+    setHasError(false);
 
     const timer = setTimeout(() => {
       setIsLoaded(true);
@@ -45,6 +95,38 @@ const IdeaCardImage: React.FC<{
 
     return () => clearTimeout(timer);
   }, [idea.imageUrl, idea.fallbackImageUrl, currentFabric.id, currentFabric.material]);
+
+  const handleGeneratePreview = async () => {
+    if (!currentFabric.imageUrl) return;
+    setIsGenerating(true);
+    try {
+      const res = await generateProjectPreview({
+        fabricImage: currentFabric.imageUrl,
+        fabricDetails: currentFabric,
+        projectDetails: idea
+      });
+      if (res.success && res.previewUrl) {
+        setImgSrc(res.previewUrl);
+        setHasError(false);
+        if (onPreviewGenerated) onPreviewGenerated(res.previewUrl);
+      }
+    } catch (err) {
+      console.warn('[Preview Generation Notice]', err);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  if (hasError || !imgSrc) {
+    return (
+      <NeutralBlueprintPlaceholder
+        title={idea.title}
+        fabric={currentFabric}
+        onGeneratePreview={handleGeneratePreview}
+        isGenerating={isGenerating}
+      />
+    );
+  }
 
   return (
     <div className="relative w-full h-full bg-paper-200">
@@ -66,10 +148,8 @@ const IdeaCardImage: React.FC<{
         onError={() => {
           if (idea.fallbackImageUrl && imgSrc !== idea.fallbackImageUrl && !idea.fallbackImageUrl.includes('pollinations.ai')) {
             setImgSrc(idea.fallbackImageUrl);
-          } else if (currentFabric.imageUrl && imgSrc !== currentFabric.imageUrl) {
-            setImgSrc(currentFabric.imageUrl);
           } else {
-            setImgSrc('/blueprints/yellow-cotton-summer-tunic.jpg');
+            setHasError(true);
           }
           setIsLoaded(true);
         }}
@@ -93,6 +173,7 @@ interface RecommendationsGalleryProps {
   isAiLoading?: boolean;
   filterMode?: CatalogSourceFilter;
   onFilterModeChange?: (mode: CatalogSourceFilter) => void;
+  aiErrorMessage?: string | null;
 }
 
 export const RecommendationsGallery: React.FC<RecommendationsGalleryProps> = ({
@@ -105,6 +186,7 @@ export const RecommendationsGallery: React.FC<RecommendationsGalleryProps> = ({
   isAiLoading = false,
   filterMode,
   onFilterModeChange,
+  aiErrorMessage,
 }) => {
   const [selectedDifficulty, setSelectedDifficulty] = useState<string>('All');
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -140,8 +222,51 @@ export const RecommendationsGallery: React.FC<RecommendationsGalleryProps> = ({
         'Steam iron & pressing cloth'
       ];
 
+      // Dynamically adapt title and subtitle to the maker's actual clothing or fabric
+      let customizedTitle = idea.title;
+      let customizedSubtitle = idea.subtitle;
+
+      if (currentFabric.clothingType) {
+        const ct = currentFabric.clothingType.toLowerCase();
+        if (ct.includes('jean') || ct.includes('trouser') || ct.includes('pant')) {
+          if (idea.id === 'idea-patchwork-tote') {
+            customizedTitle = `${currentFabric.dominantColor ? currentFabric.dominantColor + ' ' : ''}Denim Jean Market Tote`;
+            customizedSubtitle = 'Cut from repurposed trouser leg panels & rear pocket hardware';
+          } else if (idea.id === 'idea-corduroy-cardholder') {
+            customizedTitle = `${currentFabric.dominantColor ? currentFabric.dominantColor + ' ' : ''}Jean Pocket Cardholder`;
+            customizedSubtitle = 'Origami card envelope utilizing trouser coin pocket seam';
+          } else if (idea.id === 'idea-quilted-sleeve') {
+            customizedTitle = `${currentFabric.dominantColor ? currentFabric.dominantColor + ' ' : ''}Denim Leg Tube Tech Sleeve`;
+            customizedSubtitle = 'Insulated device envelope cut from continuous trouser leg width';
+          }
+        } else if (ct.includes('shirt') || ct.includes('blouse')) {
+          if (idea.id === 'idea-scrunchie-trio') {
+            customizedTitle = `Gathered ${currentFabric.material || 'Silk'} Scrunchie Set`;
+            customizedSubtitle = `Cut from ${currentFabric.clothingType} sleeve and collar strips`;
+          } else if (idea.id === 'idea-cushion-cover') {
+            customizedTitle = `${currentFabric.dominantColor ? currentFabric.dominantColor + ' ' : ''}Shirt Placket Cushion`;
+            customizedSubtitle = 'Front button closure preserved as decorative focal closure';
+          }
+        } else if (ct.includes('jacket') || ct.includes('coat')) {
+          if (idea.id === 'idea-patchwork-tote') {
+            customizedTitle = `Structured ${currentFabric.clothingType} Carryall Tote`;
+          }
+        }
+      }
+
+      if (currentFabric.condition) {
+        const cond = currentFabric.condition.toLowerCase();
+        if (cond.includes('torn') || cond.includes('distressed') || cond.includes('frayed')) {
+          if (!customizedSubtitle.includes('Sashiko')) {
+            customizedSubtitle += ' • with Visible Sashiko Mending';
+          }
+        }
+      }
+
       return {
         ...idea,
+        title: customizedTitle,
+        subtitle: customizedSubtitle,
         imageUrl: adaptedImage,
         fallbackImageUrl: adaptedImage,
         matchScore: feasibilityResult.matchScore,
@@ -175,15 +300,14 @@ export const RecommendationsGallery: React.FC<RecommendationsGalleryProps> = ({
   }, [aiBlueprints, currentFabric]);
 
   // Determine active blueprint pool based on chosen source filter
-  let baseIdeasPool: UpcycleIdea[] = [];
-  if (activeSource === 'ai') {
-    baseIdeasPool = hasAiBlueprints ? evaluatedAiBlueprints : evaluatedCuratedIdeas;
-  } else if (activeSource === 'curated') {
-    baseIdeasPool = evaluatedCuratedIdeas;
-  } else {
-    // 'all'
-    baseIdeasPool = [...evaluatedAiBlueprints, ...evaluatedCuratedIdeas];
-  }
+  const baseIdeasPool = useMemo<UpcycleIdea[]>(() => {
+    if (activeSource === 'ai') {
+      return evaluatedAiBlueprints;
+    } else if (activeSource === 'curated') {
+      return evaluatedCuratedIdeas;
+    }
+    return [...evaluatedAiBlueprints, ...evaluatedCuratedIdeas];
+  }, [activeSource, evaluatedAiBlueprints, evaluatedCuratedIdeas]);
 
   // Filter recommendations by category, difficulty, search
   const filteredIdeas = useMemo(() => {
@@ -258,15 +382,81 @@ export const RecommendationsGallery: React.FC<RecommendationsGalleryProps> = ({
             </p>
           </div>
 
-          <div className="flex items-center gap-2 font-mono text-xs text-charcoal-muted bg-surface p-2.5 rounded-2xl border border-navy/10 shadow-2xs">
-            <span className={`w-2.5 h-2.5 rounded-full ${isAiLoading ? 'bg-coral animate-pulse' : (hasAiBlueprints && activeSource === 'ai' ? 'bg-emerald-500 animate-ping' : 'bg-denim animate-pulse')}`}></span>
-            <span className="font-semibold text-navy">
-              {isAiLoading
-                ? 'Synthesizing TinyFish Trends...'
-                : `${displayedIdeas.length} ${displayedIdeas.length === 1 ? 'Pattern' : 'Patterns'} ${feasibilityView === 'matched' ? 'Directly Matched' : feasibilityView === 'modifications' ? 'With Modifications' : 'Displayed'}`}
-            </span>
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              onClick={() => {
+                document.getElementById('studio-section')?.scrollIntoView({ behavior: 'smooth' });
+              }}
+              className="px-3.5 py-2.5 rounded-2xl bg-surface border border-navy/15 hover:border-coral text-navy hover:text-coral text-xs font-mono font-semibold transition-all flex items-center gap-1.5 shadow-2xs hover:shadow-xs cursor-pointer"
+              title="Edit your fabric, garment, dimensions, condition or notes"
+            >
+              <Scissors className="w-3.5 h-3.5 text-coral" />
+              <span>Revise Item Details</span>
+            </button>
+
+            <div className="flex items-center gap-2 font-mono text-xs text-charcoal-muted bg-surface p-2.5 rounded-2xl border border-navy/10 shadow-2xs">
+              <span className={`w-2.5 h-2.5 rounded-full ${isAiLoading ? 'bg-coral animate-pulse' : (hasAiBlueprints && activeSource === 'ai' ? 'bg-emerald-500 animate-ping' : 'bg-denim animate-pulse')}`}></span>
+              <span className="font-semibold text-navy">
+                {isAiLoading
+                  ? 'Synthesizing TinyFish Trends...'
+                  : `${displayedIdeas.length} ${displayedIdeas.length === 1 ? 'Pattern' : 'Patterns'} ${feasibilityView === 'matched' ? 'Directly Matched' : feasibilityView === 'modifications' ? 'With Modifications' : 'Displayed'}`}
+              </span>
+            </div>
           </div>
         </div>
+
+        {/* Textile Clarity & Measurement Notice Banner */}
+        {currentFabric.uncertaintyNotice && (
+          <div className="mb-8 p-4 rounded-2xl bg-amber-50 border border-amber-200/90 text-amber-950 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+              <div>
+                <h4 className="text-xs font-mono font-bold uppercase tracking-wider text-amber-900">
+                  Textile Clarity & Measurement Notice
+                </h4>
+                <p className="text-xs text-amber-900/90 mt-0.5 leading-relaxed">
+                  {currentFabric.uncertaintyNotice}
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                document.getElementById('studio-section')?.scrollIntoView({ behavior: 'smooth' });
+              }}
+              className="px-3.5 py-1.5 rounded-xl bg-amber-600 text-white hover:bg-amber-700 text-xs font-mono font-semibold transition-colors shrink-0 flex items-center gap-1 cursor-pointer"
+            >
+              <span>Clarify Details</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
+
+        {/* AI Recommendation Conflict / Error Notice Banner */}
+        {aiErrorMessage && (
+          <div className="mb-8 p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-950 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="w-5 h-5 text-rose-600 flex-shrink-0 mt-0.5" />
+              <div>
+                <h4 className="text-xs font-mono font-bold uppercase tracking-wider text-rose-900">
+                  Recommendation Constraint Notice
+                </h4>
+                <p className="text-xs text-rose-900/90 mt-0.5 leading-relaxed">
+                  {aiErrorMessage}
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => handleSourceChange('curated')}
+              className="px-3.5 py-1.5 rounded-xl bg-rose-700 text-white hover:bg-rose-800 text-xs font-mono font-semibold transition-colors shrink-0 flex items-center gap-1 cursor-pointer"
+            >
+              <span>Explore Curated Archive</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
 
         {/* Catalog Source Toggle Tabs (AI Trends vs All vs Studio Archive) */}
         <div className="flex flex-wrap items-center gap-2 mb-8 p-1.5 bg-surface rounded-2xl border border-navy/15 max-w-fit shadow-xs">
@@ -422,13 +612,46 @@ export const RecommendationsGallery: React.FC<RecommendationsGalleryProps> = ({
           )}
         </div>
 
-        {/* Blueprint Cards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {displayedIdeas.map((idea: any) => {
-            const isAi = idea.isAiGenerated;
-            const rawFeasibility: CuttingLayoutResult | undefined = idea.rawFeasibility;
-            const score = idea.matchScore;
-            const status = idea.feasibility?.status;
+        {/* Blueprint Cards Grid or Loading Skeleton */}
+        {isAiLoading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-8">
+            {[1, 2, 3].map((idx) => (
+              <div
+                key={`loading-card-${idx}`}
+                className="bg-surface rounded-3xl overflow-hidden border border-navy/15 p-6 flex flex-col justify-between animate-pulse space-y-4 shadow-warm"
+              >
+                <div className="aspect-[4/3] bg-paper-200 rounded-2xl flex flex-col items-center justify-center p-6 text-center gap-3">
+                  <Sparkles className="w-8 h-8 text-coral animate-spin" />
+                  <span className="text-xs font-mono font-bold uppercase tracking-wider text-navy">
+                    {idx === 1
+                      ? 'Deconstructing Textile Geometry...'
+                      : idx === 2
+                      ? 'Synthesizing Live Trends...'
+                      : 'Calculating Zero-Waste Blueprint...'}
+                  </span>
+                  <p className="text-[11px] text-charcoal-muted max-w-xs leading-relaxed">
+                    {idx === 1
+                      ? `Calculating cutting layout and usable panels for your ${currentFabric.clothingType || currentFabric.material} (${currentFabric.dimensions.width}×${currentFabric.dimensions.height} ${currentFabric.dimensions.unit}).`
+                      : idx === 2
+                      ? `Matching ${currentFabric.dominantColor ? currentFabric.dominantColor + ' ' : ''}${currentFabric.material} in ${currentFabric.condition} condition to circular fashion styles.`
+                      : `Deriving seam specifications, needle tolerances, and cutting order.`}
+                  </p>
+                </div>
+                <div className="space-y-2 pt-2">
+                  <div className="h-4 bg-paper-200 rounded-full w-3/4"></div>
+                  <div className="h-3 bg-paper-100 rounded-full w-1/2"></div>
+                  <div className="h-10 bg-paper-200 rounded-2xl mt-4"></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {displayedIdeas.map((idea: any) => {
+              const isAi = idea.isAiGenerated;
+              const rawFeasibility: CuttingLayoutResult | undefined = idea.rawFeasibility;
+              const score = idea.matchScore;
+              const status = idea.feasibility?.status;
 
             return (
               <motion.div
@@ -469,6 +692,29 @@ export const RecommendationsGallery: React.FC<RecommendationsGalleryProps> = ({
                           : 'Doesn’t Fit Remnant'}
                       </span>
                     </div>
+
+                    {/* Badge: Photo-conditioned concept vs Generic style reference */}
+                    {idea.isPhotoConditioned ? (
+                      <div className="absolute top-10 left-3 flex items-center gap-1 z-20">
+                        <span 
+                          className="px-2.5 py-1 rounded-full text-[10px] font-mono font-bold bg-emerald-950/85 text-emerald-200 border border-emerald-400/40 backdrop-blur-md shadow-xs flex items-center gap-1"
+                          title="AI-generated concept preview derived from your uploaded fabric photo. Not a photograph of a finished real garment."
+                        >
+                          <Sparkles className="w-3 h-3 text-emerald-400 shrink-0" />
+                          <span>AI Concept • Fabric Conditioned</span>
+                        </span>
+                      </div>
+                    ) : idea.isGenericReference ? (
+                      <div className="absolute top-10 left-3 flex items-center gap-1 z-20">
+                        <span 
+                          className="px-2.5 py-1 rounded-full text-[10px] font-mono font-bold bg-amber-950/85 text-amber-200 border border-amber-400/40 backdrop-blur-md shadow-xs flex items-center gap-1"
+                          title={idea.imageNote || "Illustration is a generic styling reference and does not depict your exact fabric color or material."}
+                        >
+                          <AlertTriangle className="w-3 h-3 text-amber-400 shrink-0" />
+                          <span>{idea.imageLabel || 'Generic Style Reference'}</span>
+                        </span>
+                      </div>
+                    ) : null}
 
                     {/* AI / TinyFish badge on card header */}
                     {isAi && (
@@ -627,47 +873,82 @@ export const RecommendationsGallery: React.FC<RecommendationsGalleryProps> = ({
             );
           })}
         </div>
+      )}
 
-        {/* Empty State when no patterns match */}
-        {displayedIdeas.length === 0 && (
-          <div className="p-12 text-center rounded-3xl bg-surface border border-navy/15 max-w-lg mx-auto space-y-4 shadow-sm">
-            <HelpCircle className="w-10 h-10 text-coral mx-auto" />
-            <h3 className="font-serif text-lg font-bold text-navy">
-              {feasibilityView === 'matched'
-                ? `No direct matches in "${selectedCategory}"`
-                : `No blueprints found in "${selectedCategory}"`}
-            </h3>
-            <p className="text-xs text-charcoal-muted leading-relaxed">
-              {feasibilityView === 'matched' && modificationIdeas.length > 0
-                ? `Your ${currentFabric.dimensions.width}×${currentFabric.dimensions.height} ${currentFabric.dimensions.unit} ${currentFabric.name} cannot fit any "${selectedCategory}" pattern directly without extra fabric. However, ${modificationIdeas.length} project(s) can be made with modular piecing or contrast backing.`
-                : `No blueprints under "${selectedCategory}" with "${selectedDifficulty}" difficulty match your filters.`}
-            </p>
-            <div className="pt-2 flex flex-wrap justify-center gap-3">
-              {feasibilityView === 'matched' && modificationIdeas.length > 0 && (
+      {/* Empty State when no patterns match */}
+      {!isAiLoading && displayedIdeas.length === 0 && (
+        <div className="p-12 text-center rounded-3xl bg-surface border border-navy/15 max-w-lg mx-auto space-y-4 shadow-sm">
+          {activeSource === 'ai' ? (
+            <>
+              <AlertTriangle className="w-10 h-10 text-amber-600 mx-auto" />
+              <h3 className="font-serif text-lg font-bold text-navy">
+                No Reliable AI Match Found
+              </h3>
+              <p className="text-xs text-charcoal-muted leading-relaxed">
+                {aiErrorMessage || (
+                  `No AI project blueprints reliably match your physical fabric constraints (${currentFabric.dominantColor ? `${currentFabric.dominantColor} ` : ''}${currentFabric.material || 'fabric'}, ${currentFabric.dimensions.width}×${currentFabric.dimensions.height} ${currentFabric.dimensions.unit}) without altering required properties. Unrelated preset recommendations are not silently substituted.`
+                )}
+              </p>
+              <div className="pt-2 flex flex-wrap justify-center gap-3">
                 <button
                   type="button"
-                  onClick={() => setFeasibilityView('modifications')}
-                  className="px-4 py-2 rounded-xl bg-indigo-700 text-white text-xs font-semibold hover:bg-indigo-800 transition-colors flex items-center gap-1.5"
+                  onClick={() => handleSourceChange('all')}
+                  className="px-4 py-2 rounded-xl bg-navy text-paper text-xs font-semibold hover:bg-navy-700 transition-colors flex items-center gap-1.5"
                 >
-                  <Layers className="w-3.5 h-3.5" />
-                  <span>View {modificationIdeas.length} Projects with Modifications</span>
+                  <span>Explore All Catalog Projects</span>
                 </button>
-              )}
-              <button
-                type="button"
-                onClick={() => {
-                  onCategoryChange('All');
-                  setSelectedDifficulty('All');
-                  setSearchQuery('');
-                  setFeasibilityView('matched');
-                }}
-                className="px-4 py-2 rounded-xl bg-navy text-paper text-xs font-semibold hover:bg-navy-700 transition-colors"
-              >
-                Reset Filters & View All
-              </button>
-            </div>
-          </div>
-        )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    document.getElementById('studio-section')?.scrollIntoView({ behavior: 'smooth' });
+                  }}
+                  className="px-4 py-2 rounded-xl bg-surface border border-navy/20 text-navy text-xs font-semibold hover:border-coral hover:text-coral transition-colors"
+                >
+                  Revise Fabric Details
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              <HelpCircle className="w-10 h-10 text-coral mx-auto" />
+              <h3 className="font-serif text-lg font-bold text-navy">
+                {feasibilityView === 'matched'
+                  ? `No direct matches in "${selectedCategory}"`
+                  : `No blueprints found in "${selectedCategory}"`}
+              </h3>
+              <p className="text-xs text-charcoal-muted leading-relaxed">
+                {feasibilityView === 'matched' && modificationIdeas.length > 0
+                  ? `Your ${currentFabric.dimensions.width}×${currentFabric.dimensions.height} ${currentFabric.dimensions.unit} ${currentFabric.name} cannot fit any "${selectedCategory}" pattern directly without extra fabric. However, ${modificationIdeas.length} project(s) can be made with modular piecing or contrast backing.`
+                  : `No blueprints under "${selectedCategory}" with "${selectedDifficulty}" difficulty match your filters.`}
+              </p>
+              <div className="pt-2 flex flex-wrap justify-center gap-3">
+                {feasibilityView === 'matched' && modificationIdeas.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setFeasibilityView('modifications')}
+                    className="px-4 py-2 rounded-xl bg-indigo-700 text-white text-xs font-semibold hover:bg-indigo-800 transition-colors flex items-center gap-1.5"
+                  >
+                    <Layers className="w-3.5 h-3.5" />
+                    <span>View {modificationIdeas.length} Projects with Modifications</span>
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    onCategoryChange('All');
+                    setSelectedDifficulty('All');
+                    setSearchQuery('');
+                    setFeasibilityView('matched');
+                  }}
+                  className="px-4 py-2 rounded-xl bg-navy text-paper text-xs font-semibold hover:bg-navy-700 transition-colors"
+                >
+                  Reset Filters & View All
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      )}
 
       </div>
     </section>

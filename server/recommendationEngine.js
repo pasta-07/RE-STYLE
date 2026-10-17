@@ -160,7 +160,7 @@ export const MASTER_PROJECT_CATALOG = [
     incompatibleFibers: [],
     suitableConditions: ['new', 'good', 'worn'],
     intendedUses: ['clothing', 'gifts', 'decorative'],
-    imageUrl: '/blueprints/purple-silk-kimono-shrug.jpg',
+    imageUrl: '/blueprints/purple-silk-origami-scarf.jpg',
     cuttingPlan: {
       patternPieces: [
         { name: 'Cravat Main Body Blade', count: 1, width: 44, height: 16, unit: 'cm', notes: 'Cut on 45-degree true bias if possible' },
@@ -202,7 +202,7 @@ export const MASTER_PROJECT_CATALOG = [
     incompatibleFibers: [],
     suitableConditions: ['new', 'good', 'worn'],
     intendedUses: ['home', 'gifts', 'storage'],
-    imageUrl: '/blueprints/belgian-slub-linen-weekend-carryall.jpg',
+    imageUrl: '/blueprints/belgian-slub-linen-maker-apron.jpg',
     cuttingPlan: {
       patternPieces: [
         { name: 'Main Square Panel', count: 1, width: 30, height: 30, unit: 'cm', notes: 'Exact square' },
@@ -243,7 +243,7 @@ export const MASTER_PROJECT_CATALOG = [
     incompatibleFibers: ['silk', 'chiffon'],
     suitableConditions: ['new', 'good', 'worn'],
     intendedUses: ['home', 'storage', 'gifts', 'decorative'],
-    imageUrl: '/blueprints/terracotta-corduroy-overshirt.jpg',
+    imageUrl: '/blueprints/jute-document-folio.jpg',
     cuttingPlan: {
       patternPieces: [
         { name: 'Outer Tray Shell', count: 1, width: 20, height: 20, unit: 'cm' },
@@ -286,7 +286,7 @@ export const MASTER_PROJECT_CATALOG = [
     incompatibleFibers: [],
     suitableConditions: ['new', 'good', 'worn', 'damaged', 'needs_repair'],
     intendedUses: ['scraps', 'accessories', 'gifts', 'decorative'],
-    imageUrl: '/blueprints/purple-silk-kimono-shrug.jpg',
+    imageUrl: '/blueprints/purple-silk-evening-pouch.jpg',
     cuttingPlan: {
       patternPieces: [
         { name: 'Scrunchie Tube Strip', count: 1, width: 30, height: 9, unit: 'cm', notes: 'Straight narrow rectangle' }
@@ -326,7 +326,7 @@ export const MASTER_PROJECT_CATALOG = [
     incompatibleFibers: [],
     suitableConditions: ['new', 'good', 'worn', 'damaged', 'needs_repair'],
     intendedUses: ['scraps', 'home', 'gifts', 'decorative'],
-    imageUrl: '/blueprints/belgian-slub-linen-weekend-carryall.jpg',
+    imageUrl: '/blueprints/yellow-cotton-envelope-cushion.jpg',
     cuttingPlan: {
       patternPieces: [
         { name: 'Coaster Face Panels (can be patchwork)', count: 4, width: 10, height: 10, unit: 'cm' },
@@ -354,8 +354,8 @@ export const MASTER_PROJECT_CATALOG = [
     difficulty: 'Beginner',
     timeEstimate: 'Under 30 minutes',
     timeMinutes: 15,
-    minDimensions: { length: 15, width: 10, unit: 'cm' },
-    minAreaCm2: 150,
+    minDimensions: { length: 10, width: 10, unit: 'cm' },
+    minAreaCm2: 90,
     requiredTools: ['Fabric shears or rotary cutter', 'Hand-sewing supplies'],
     optionalTools: ['Sewing machine', 'Snap pliers'],
     materialsNeeded: [
@@ -366,10 +366,10 @@ export const MASTER_PROJECT_CATALOG = [
     incompatibleFibers: ['lace', 'chiffon'],
     suitableConditions: ['new', 'good', 'worn', 'damaged', 'needs_repair'],
     intendedUses: ['scraps', 'storage', 'accessories', 'gifts'],
-    imageUrl: '/blueprints/denim-chore-jacket.jpg',
+    imageUrl: '/blueprints/corduroy-zip-pouch.jpg',
     cuttingPlan: {
       patternPieces: [
-        { name: 'Cord Wrap Tabs', count: 3, width: 12, height: 3, unit: 'cm' }
+        { name: 'Cord Wrap Tabs', count: 3, width: 10, height: 3, unit: 'cm' }
       ],
       seamAllowance: '0.5 cm',
       grainline: 'Any',
@@ -405,7 +405,7 @@ export const MASTER_PROJECT_CATALOG = [
     incompatibleFibers: [],
     suitableConditions: ['new', 'good', 'worn', 'damaged'],
     intendedUses: ['scraps', 'home', 'gifts', 'decorative'],
-    imageUrl: '/blueprints/belgian-slub-linen-weekend-carryall.jpg',
+    imageUrl: '/blueprints/green-lace-pouch.jpg',
     cuttingPlan: {
       patternPieces: [
         { name: 'Sachet Pouch Front & Back', count: 2, width: 10, height: 12, unit: 'cm' }
@@ -481,14 +481,51 @@ export function normalizeToCm(val, unit = 'cm') {
 }
 
 /**
+ * Intelligently parse natural dimension expressions like "a 4 × 4 piece", "4x4", "10x15 in", "50x60 cm"
+ */
+export function parseNaturalDimensions(text) {
+  if (!text || typeof text !== 'string') return null;
+  const match = text.match(/(\d+(?:\.\d+)?)\s*(?:[x×by*]|and)\s*(\d+(?:\.\d+)?)\s*(cm|in|inch|inches|meters|m)?/i);
+  if (match) {
+    const d1 = parseFloat(match[1]);
+    const d2 = parseFloat(match[2]);
+    let rawUnit = (match[3] || '').toLowerCase();
+    let unit = 'cm';
+    if (rawUnit.startsWith('in')) {
+      unit = 'in';
+    } else if (rawUnit.startsWith('m')) {
+      return { length: d1 * 100, width: d2 * 100, unit: 'cm' };
+    } else if (!rawUnit) {
+      // Numbers <= 15 with no unit typically refer to inches in colloquial maker descriptions
+      unit = (d1 <= 15 && d2 <= 15) ? 'in' : 'cm';
+    }
+    return { length: d1, width: d2, unit };
+  }
+  return null;
+}
+
+/**
  * Deterministically evaluate project feasibility against user fabric and tools
  */
 export function evaluateProjectFeasibility(project, userFabric, userPreferences = {}) {
-  const fabricLength = Number(userFabric?.dimensions?.length || userFabric?.length || 0);
-  const fabricWidth = Number(userFabric?.dimensions?.width || userFabric?.width || 0);
-  const fabricUnit = userFabric?.dimensions?.unit || userFabric?.unit || 'cm';
+  let fabricLength = Number(userFabric?.dimensions?.length || userFabric?.length || 0);
+  let fabricWidth = Number(userFabric?.dimensions?.width || userFabric?.width || 0);
+  let fabricUnit = userFabric?.dimensions?.unit || userFabric?.unit || 'cm';
+
+  // Fallback to parsing natural dimensions text (e.g. "a 4 × 4 piece" or "35x45 cm")
+  if (fabricLength <= 0 || fabricWidth <= 0) {
+    const candidateText = userFabric?.dimensionsText || userFabric?.quantity || userFabric?.name || '';
+    const parsed = parseNaturalDimensions(candidateText);
+    if (parsed) {
+      fabricLength = parsed.length;
+      fabricWidth = parsed.width;
+      fabricUnit = parsed.unit;
+    }
+  }
+
   const fabricMaterial = (userFabric?.material || '').toLowerCase();
-  const fabricCondition = userFabric?.condition || 'good';
+  const fabricClothingType = (userFabric?.clothingType || userFabric?.garmentType || '').toLowerCase();
+  const fabricCondition = (userFabric?.condition || 'good').toLowerCase();
 
   const userTools = Array.isArray(userPreferences.tools) ? userPreferences.tools.map(t => t.toLowerCase()) : [];
   const userSkill = (userPreferences.skill || 'Intermediate').toLowerCase();
@@ -546,7 +583,7 @@ export function evaluateProjectFeasibility(project, userFabric, userPreferences 
     }
   }
 
-  // 2. Fiber / Material Compatibility
+  // 2. Fiber / Material & Clothing Type Compatibility
   let materialMatch = true;
   let materialNotes = '';
   if (fabricMaterial) {
@@ -557,6 +594,19 @@ export function evaluateProjectFeasibility(project, userFabric, userPreferences 
       materialNotes = `Ideal structure: ${fabricMaterial} naturally complements this zero-waste pattern.`;
     } else {
       materialNotes = `Acceptable textile structure for this design.`;
+    }
+  }
+
+  // Specific garment deconstruction alignment
+  if (fabricClothingType) {
+    if (fabricClothingType.includes('jean') || fabricClothingType.includes('trouser') || fabricClothingType.includes('pant')) {
+      if (project.category === 'Bags & Carry' || project.id.includes('crossbody') || project.id.includes('cardholder')) {
+        materialNotes += ` Excellent match for deconstructed trousers: back pockets & leg panels repurpose cleanly.`;
+      }
+    } else if (fabricClothingType.includes('shirt') || fabricClothingType.includes('blouse')) {
+      if (project.category === 'Apparel & Garments' || project.category === 'Accessories') {
+        materialNotes += ` Placket and collar buttons can be preserved as functional design elements.`;
+      }
     }
   }
 
@@ -633,8 +683,11 @@ export function evaluateProjectFeasibility(project, userFabric, userPreferences 
   if (timeMatch) score += 5;
   if (useMatch) score += 10;
 
-  // Clamp score between 10 and 99
-  const finalScore = Math.max(10, Math.min(99, score));
+  // Clamp score between 10 and 99, capping physically insufficient material projects at 45
+  let finalScore = Math.max(10, Math.min(99, score));
+  if (dimensionStatus === 'insufficient_material') {
+    finalScore = Math.min(45, finalScore);
+  }
 
   // Build clear, honest explanation points
   const matchExplanations = [];
@@ -681,22 +734,282 @@ export function evaluateProjectFeasibility(project, userFabric, userPreferences 
 }
 
 /**
+ * Evaluates whether a candidate image genuinely matches the fabric's actual color and material.
+ */
+export function isImageAssociatedWithFabric(imageUrl = '', userFabric = {}) {
+  if (!imageUrl || typeof imageUrl !== 'string') return false;
+  const img = imageUrl.toLowerCase();
+  const userColor = (userFabric.dominantColor || userFabric.colorFamily || '').toLowerCase();
+  const mat = (userFabric.material || userFabric.name || '').toLowerCase();
+
+  const isBlue = /blue|indigo|cobalt|navy|cyan|sapphire|denim/i.test(userColor);
+  const isGreen = /green|olive|sage|emerald|forest|mint/i.test(userColor);
+  const isPurple = /purple|violet|magenta|plum|lavender|amethyst/i.test(userColor);
+  const isYellow = /yellow|gold|mustard|ochre|amber/i.test(userColor);
+  const isRed = /red|terracotta|rust|crimson|burgundy/i.test(userColor);
+  const isNeutral = /white|cream|ivory|ecru|linen|slub/i.test(userColor);
+
+  if (isBlue) {
+    if (img.includes('purple-silk') || img.includes('terracotta-corduroy') || img.includes('yellow-cotton') || img.includes('green-lace') || img.includes('olive') || img.includes('jute')) {
+      return false;
+    }
+    if (img.includes('denim')) return true;
+  }
+
+  if (isGreen) {
+    if (img.includes('purple-silk') || img.includes('terracotta-corduroy') || img.includes('yellow-cotton') || img.includes('denim')) {
+      return false;
+    }
+    if (img.includes('olive') || img.includes('green') || img.includes('sage')) return true;
+  }
+
+  if (isPurple) {
+    if (img.includes('terracotta') || img.includes('yellow-cotton') || img.includes('olive') || img.includes('denim')) {
+      return false;
+    }
+    if (img.includes('purple-silk')) return true;
+  }
+
+  if (isYellow) {
+    if (img.includes('purple-silk') || img.includes('terracotta') || img.includes('olive') || img.includes('denim')) {
+      return false;
+    }
+    if (img.includes('yellow-cotton')) return true;
+  }
+
+  if (isRed) {
+    if (img.includes('purple-silk') || img.includes('yellow-cotton') || img.includes('olive') || img.includes('denim')) {
+      return false;
+    }
+    if (img.includes('terracotta')) return true;
+  }
+
+  if (/lace/i.test(mat) && !img.includes('lace')) return false;
+  if (/jute|burlap/i.test(mat) && !img.includes('jute')) return false;
+  if (/corduroy/i.test(mat) && !img.includes('corduroy')) return false;
+
+  if (img.includes('belgian-slub-linen')) {
+    return isNeutral || /linen|flax|bast/i.test(mat);
+  }
+
+  return false;
+}
+
+/**
+ * Pick a tailored, non-duplicated blueprint visual reflecting the user's textile and color
+ */
+function getTailoredProjectImage(projectId, userFabric, usedImages) {
+  const mat = (userFabric?.material || userFabric?.name || '').toLowerCase();
+  const color = (userFabric?.dominantColor || userFabric?.colorFamily || '').toLowerCase();
+  const clothing = (userFabric?.clothingType || '').toLowerCase();
+
+  let candidate = null;
+  switch (projectId) {
+    case 'rec-origami-tote':
+      if (color.includes('yellow') || color.includes('gold') || mat.includes('cotton')) candidate = '/blueprints/yellow-cotton-market-carryall.jpg';
+      else if (mat.includes('jute') || mat.includes('burlap')) candidate = '/blueprints/jute-patchwork-tote.jpg';
+      else if (mat.includes('denim') || color.includes('indigo') || color.includes('blue') || clothing.includes('jean')) candidate = '/blueprints/denim-chore-jacket.jpg';
+      else candidate = '/blueprints/belgian-slub-linen-weekend-carryall.jpg';
+      break;
+
+    case 'rec-crossbody-utility-rig':
+      if (mat.includes('denim') || color.includes('indigo') || color.includes('blue') || clothing.includes('jean')) candidate = '/blueprints/denim-crossbody-rig.jpg';
+      else if (color.includes('green') || color.includes('olive') || color.includes('sage')) candidate = '/blueprints/olive-utility-rig.jpg';
+      else if (mat.includes('jute') || mat.includes('burlap')) candidate = '/blueprints/jute-crossbody-rig.jpg';
+      else candidate = '/blueprints/belgian-slub-linen-crossbody-rig.jpg';
+      break;
+
+    case 'rec-bucket-hat':
+      if (mat.includes('jute') || mat.includes('burlap') || color.includes('brown')) candidate = '/blueprints/jute-bucket-hat.jpg';
+      else if (color.includes('green') || color.includes('olive') || color.includes('sage')) candidate = '/blueprints/olive-utility-rig.jpg';
+      else if (color.includes('blue') || color.includes('indigo') || mat.includes('denim')) candidate = '/blueprints/denim-crossbody-rig.jpg';
+      else candidate = '/blueprints/jute-bucket-hat.jpg';
+      break;
+
+    case 'rec-statement-cravat-collar':
+      if (mat.includes('lace') || color.includes('green') || color.includes('sage')) candidate = '/blueprints/lace-collar.jpg';
+      else if (mat.includes('silk') || color.includes('purple') || color.includes('violet') || color.includes('pink')) candidate = '/blueprints/purple-silk-origami-scarf.jpg';
+      else if (mat.includes('jute') || mat.includes('burlap')) candidate = '/blueprints/jute-statement-choker.jpg';
+      else if (color.includes('blue') || color.includes('indigo') || mat.includes('denim')) candidate = '/blueprints/denim-crossbody-rig.jpg';
+      else candidate = '/blueprints/purple-silk-origami-scarf.jpg';
+      break;
+
+    case 'rec-linen-bento-wrap':
+      if (color.includes('yellow') || color.includes('gold') || mat.includes('cotton')) candidate = '/blueprints/yellow-cotton-maker-apron.jpg';
+      else if (mat.includes('jute') || mat.includes('burlap')) candidate = '/blueprints/jute-maker-apron.jpg';
+      else candidate = '/blueprints/belgian-slub-linen-maker-apron.jpg';
+      break;
+
+    case 'rec-valet-tray':
+      if (mat.includes('corduroy') || color.includes('terracotta') || color.includes('red') || color.includes('rust')) candidate = '/blueprints/corduroy-zip-pouch.jpg';
+      else if (mat.includes('jute') || mat.includes('burlap')) candidate = '/blueprints/jute-document-folio.jpg';
+      else if (color.includes('blue') || color.includes('indigo') || mat.includes('denim')) candidate = '/blueprints/denim-crossbody-rig.jpg';
+      else candidate = '/blueprints/jute-document-folio.jpg';
+      break;
+
+    case 'rec-scrunchie-duo':
+      if (color.includes('purple') || color.includes('violet') || mat.includes('silk')) candidate = '/blueprints/purple-silk-evening-pouch.jpg';
+      else if (color.includes('green') || color.includes('olive') || mat.includes('lace')) candidate = '/blueprints/green-lace-pouch.jpg';
+      else if (color.includes('blue') || color.includes('indigo') || mat.includes('denim')) candidate = '/blueprints/denim-crossbody-rig.jpg';
+      else candidate = '/blueprints/purple-silk-evening-pouch.jpg';
+      break;
+
+    case 'rec-patchwork-coasters':
+      if (color.includes('yellow') || color.includes('gold') || mat.includes('cotton')) candidate = '/blueprints/yellow-cotton-envelope-cushion.jpg';
+      else if (color.includes('purple') || color.includes('violet') || mat.includes('silk')) candidate = '/blueprints/purple-silk-envelope-cushion.jpg';
+      else candidate = '/blueprints/yellow-cotton-envelope-cushion.jpg';
+      break;
+
+    case 'rec-cable-tie-wraps':
+      if (color.includes('green') || color.includes('olive')) candidate = '/blueprints/olive-utility-rig.jpg';
+      else if (mat.includes('denim') || color.includes('indigo') || color.includes('blue')) candidate = '/blueprints/denim-chore-jacket.jpg';
+      else candidate = '/blueprints/corduroy-zip-pouch.jpg';
+      break;
+
+    case 'rec-lavender-sachet':
+      if (color.includes('purple') || color.includes('violet') || mat.includes('silk')) candidate = '/blueprints/purple-silk-envelope-cushion.jpg';
+      else if (color.includes('yellow') || color.includes('gold')) candidate = '/blueprints/yellow-cotton-summer-tunic.jpg';
+      else candidate = '/blueprints/green-lace-pouch.jpg';
+      break;
+
+    case 'rec-kimono-vest':
+      if (mat.includes('wool') || mat.includes('tweed')) candidate = '/blueprints/wool-tweed-waistcoat.jpg';
+      else if (mat.includes('silk') || color.includes('purple') || color.includes('violet')) candidate = '/blueprints/purple-silk-kimono-shrug.jpg';
+      else if (color.includes('yellow') || color.includes('gold') || mat.includes('cotton')) candidate = '/blueprints/yellow-cotton-summer-tunic.jpg';
+      else if (mat.includes('corduroy') || color.includes('terracotta') || color.includes('red')) candidate = '/blueprints/terracotta-corduroy-overshirt.jpg';
+      else if (mat.includes('denim') || color.includes('indigo') || color.includes('blue')) candidate = '/blueprints/denim-chore-jacket.jpg';
+      else candidate = '/blueprints/belgian-slub-linen-kimono-gilet.jpg';
+      break;
+
+    default:
+      candidate = '/blueprints/belgian-slub-linen-weekend-carryall.jpg';
+  }
+
+  // Ensure candidate image is strictly unique within this recommendation batch
+  if (usedImages.has(candidate)) {
+    const alternates = [
+      '/blueprints/belgian-slub-linen-weekend-carryall.jpg',
+      '/blueprints/denim-crossbody-rig.jpg',
+      '/blueprints/jute-bucket-hat.jpg',
+      '/blueprints/purple-silk-origami-scarf.jpg',
+      '/blueprints/belgian-slub-linen-maker-apron.jpg',
+      '/blueprints/jute-document-folio.jpg',
+      '/blueprints/purple-silk-evening-pouch.jpg',
+      '/blueprints/yellow-cotton-envelope-cushion.jpg',
+      '/blueprints/corduroy-zip-pouch.jpg',
+      '/blueprints/green-lace-pouch.jpg',
+      '/blueprints/belgian-slub-linen-kimono-gilet.jpg',
+      '/blueprints/wool-tweed-waistcoat.jpg',
+      '/blueprints/lace-collar.jpg',
+      '/blueprints/olive-utility-rig.jpg',
+      '/blueprints/yellow-cotton-market-carryall.jpg',
+      '/blueprints/jute-patchwork-tote.jpg',
+      '/blueprints/belgian-slub-linen-crossbody-rig.jpg',
+      '/blueprints/jute-crossbody-rig.jpg',
+      '/blueprints/purple-silk-envelope-cushion.jpg',
+      '/blueprints/yellow-cotton-maker-apron.jpg',
+      '/blueprints/jute-maker-apron.jpg',
+      '/blueprints/terracotta-corduroy-overshirt.jpg',
+      '/blueprints/denim-chore-jacket.jpg',
+      '/blueprints/olive-chore-jacket.jpg',
+      '/blueprints/purple-silk-kimono-shrug.jpg',
+      '/blueprints/purple-silk-quilted-vest.jpg',
+      '/blueprints/lace-bolero.jpg',
+      '/blueprints/jute-statement-choker.jpg',
+      '/blueprints/yellow-cotton-summer-tunic.jpg',
+      '/blueprints/lace-collar.jpg'
+    ];
+    for (const alt of alternates) {
+      if (!usedImages.has(alt)) {
+        candidate = alt;
+        break;
+      }
+    }
+  }
+
+  usedImages.add(candidate);
+  return candidate;
+}
+
+/**
  * Filter and rank project catalog recommendations deterministically
  */
 export function getRecommendedProjects(userFabric, preferences = {}) {
+  const usedImages = new Set();
+
   const results = MASTER_PROJECT_CATALOG.map(project => {
     const evalResult = evaluateProjectFeasibility(project, userFabric, preferences);
+    const tailoredImage = getTailoredProjectImage(project.id, userFabric, usedImages);
+    const isMatchingImage = isImageAssociatedWithFabric(tailoredImage, userFabric);
+    const isGenericReference = !isMatchingImage;
+    const imageLabel = isGenericReference ? 'Generic reference illustration' : 'Tailored swatch reference';
+    const imageNote = isGenericReference 
+      ? `Style reference only; does not depict your exact ${userFabric?.dominantColor ? userFabric.dominantColor + ' ' : ''}${userFabric?.material || 'fabric'}.`
+      : `Tailored visual reference matching your ${userFabric?.dominantColor ? userFabric.dominantColor + ' ' : ''}${userFabric?.material || 'textile'}.`;
+
+    // Adapt title & subtitle to the maker's actual clothing item, color, and condition
+    let customizedTitle = project.title;
+    let customizedSubtitle = project.subtitle;
+
+    if (userFabric?.dominantColor && !customizedTitle.toLowerCase().includes(userFabric.dominantColor.toLowerCase())) {
+      customizedTitle = `${userFabric.dominantColor} ${customizedTitle}`;
+    }
+
+    if (userFabric?.clothingType) {
+      const ct = userFabric.clothingType.toLowerCase();
+      if (ct.includes('jean') || ct.includes('trouser') || ct.includes('pant')) {
+        if (project.id === 'rec-origami-tote') {
+          customizedTitle = `${userFabric.dominantColor ? userFabric.dominantColor + ' ' : ''}Denim Jean Market Tote`;
+          customizedSubtitle = 'Reinforced carryall cut from repurposed trouser leg panels & rear pocket hardware';
+        } else if (project.id === 'rec-crossbody-utility-rig') {
+          customizedTitle = `${userFabric.dominantColor ? userFabric.dominantColor + ' ' : ''}Jean Pocket Crossbody Rig`;
+          customizedSubtitle = 'Tactical pouch utilizing deconstructed trouser back pockets and seams';
+        } else if (project.id === 'rec-cable-tie-wraps') {
+          customizedTitle = `${userFabric.dominantColor ? userFabric.dominantColor + ' ' : ''}Jean Seam Tech Cord Organizers`;
+        }
+      } else if (ct.includes('shirt') || ct.includes('blouse')) {
+        if (project.id === 'rec-statement-cravat-collar') {
+          customizedTitle = `${userFabric.dominantColor ? userFabric.dominantColor + ' ' : ''}Upcycled ${userFabric.material || 'Shirt'} Cravat & Collar`;
+          customizedSubtitle = 'Crafted by preserving button placket and collar interfacing';
+        } else if (project.id === 'rec-scrunchie-duo') {
+          customizedTitle = `${userFabric.dominantColor ? userFabric.dominantColor + ' ' : ''}Gathered ${userFabric.material || 'Silk'} Scrunchie Set`;
+          customizedSubtitle = `Cut from deconstructed ${userFabric.clothingType} sleeve strips`;
+        }
+      } else if (ct.includes('jacket') || ct.includes('coat')) {
+        if (project.id === 'rec-origami-tote') {
+          customizedTitle = `${userFabric.dominantColor ? userFabric.dominantColor + ' ' : ''}Structured ${userFabric.clothingType} Carryall Tote`;
+        }
+      }
+    }
+
+    if (userFabric?.condition) {
+      const cond = userFabric.condition.toLowerCase();
+      if (cond.includes('torn') || cond.includes('distressed') || cond.includes('frayed')) {
+        if (!customizedSubtitle.includes('Sashiko')) {
+          customizedSubtitle += ' • with Visible Sashiko Mending';
+        }
+      }
+    }
+
     return {
       ...project,
+      title: customizedTitle,
+      subtitle: customizedSubtitle,
+      imageUrl: tailoredImage,
+      isGenericReference,
+      imageLabel,
+      imageNote,
       matchScore: evalResult.matchScore,
       feasibility: evalResult.feasibility,
       consumptionEstimate: evalResult.consumptionEstimate,
       leftoverEstimate: evalResult.leftoverEstimate,
+      materialMatch: evalResult.materialMatch,
       materialNotes: evalResult.materialNotes,
       missingTools: evalResult.missingTools,
       suitabilityReason: evalResult.explanations.join(' '),
       explanations: evalResult.explanations,
-      fabricRequired: `${project.minDimensions.length}×${project.minDimensions.width} ${project.minDimensions.unit} (${Math.round(project.minAreaCm2)} cm²)`
+      fabricRequired: `${project.minDimensions.length}×${project.minDimensions.width} ${project.minDimensions.unit} (${Math.round(project.minAreaCm2)} cm²)`,
+      tailoredBadge: `Tailored for your ${userFabric?.dominantColor ? userFabric.dominantColor + ' ' : ''}${userFabric?.clothingType || userFabric?.material || 'textile'}`
     };
   });
 

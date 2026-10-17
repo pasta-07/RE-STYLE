@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import { 
   UploadCloud, 
   Trash2, 
@@ -9,9 +9,14 @@ import {
   Check, 
   Scan, 
   HelpCircle,
-  Eye,
   AlertCircle,
-  Layers
+  Layers,
+  Palette,
+  Scissors,
+  FileText,
+  Tag,
+  CheckCircle2,
+  X
 } from 'lucide-react';
 import { SAMPLE_FABRICS } from '../data/mockFabrics';
 import type { FabricSample } from '../data/mockFabrics';
@@ -29,6 +34,84 @@ interface FabricStudioProps {
   onCategoryChange: (category: string) => void;
 }
 
+// Quick suggested clothing and textile types
+const CLOTHING_SUGGESTIONS = [
+  { label: 'Denim Jeans / Jacket', fiber: 'Raw Indigo Denim', gsm: 360, archetype: 'denim-workwear', body: 'Rigid Heavy Twill', drape: 'Structured boxy crease' },
+  { label: 'Linen Button-Up Shirt', fiber: 'Washed European Linen', gsm: 185, archetype: 'linen-slub', body: 'Airy Slub Weave', drape: 'Soft breathable relaxed drape' },
+  { label: 'Corduroy Trousers', fiber: 'Wide-Wale Corduroy', gsm: 320, archetype: 'corduroy-velvet', body: 'Wale Ribbed Velvet', drape: 'Tactile plush structured drape' },
+  { label: 'Cotton Bedsheet / Scrap', fiber: 'Handloom Cotton', gsm: 160, archetype: 'cotton-handloom', body: 'Breathable Plain Weave', drape: 'Malleable gentle fold lines' },
+  { label: 'Wool Knit / Coat', fiber: 'Merino Wool Tweed', gsm: 400, archetype: 'wool-tweed', body: 'Lofty Coarse Wool', drape: 'Firm tailoring resilience' },
+  { label: 'Silk Blouse / Scarf', fiber: 'Mulberry Silk Satin', gsm: 95, archetype: 'silk-satin', body: 'Ultra-Fine Lustrous Filament', drape: 'Liquid high-fluidity cascading drape' },
+  { label: 'Lace Curtain / Trim', fiber: 'Embroidered Guipure Lace', gsm: 140, archetype: 'lace-sheer', body: 'Openwork Floral Lace', drape: 'Fluid delicate sheer drape' },
+];
+
+// Curated chromatic palette swatches
+const COLOR_PRESETS = [
+  { name: 'Deep Indigo', hex: '#253247', family: 'indigo-denim' },
+  { name: 'Washed Denim', hex: '#496E8A', family: 'indigo-denim' },
+  { name: 'Natural Flax', hex: '#D5CBB9', family: 'white-light' },
+  { name: 'Warm Terracotta', hex: '#C96F52', family: 'red-terracotta' },
+  { name: 'Golden Marigold', hex: '#D6AD64', family: 'yellow-gold' },
+  { name: 'Forest Olive', hex: '#2D4A3E', family: 'green-olive' },
+  { name: 'Plum Heather', hex: '#5A3D5C', family: 'purple-silk' },
+  { name: 'Crisp Ecru', hex: '#F7F4EE', family: 'white-light' },
+  { name: 'Charcoal Black', hex: '#1E232A', family: 'dark-black' },
+];
+
+// Condition definitions
+const CONDITION_OPTIONS = [
+  { label: 'Crisp Remnant', desc: 'Unused factory or bolt offcut' },
+  { label: 'Gently Washed', desc: 'Clean, softened pre-loved garment' },
+  { label: 'Vintage Worn', desc: 'Authentic patina with softened fold lines' },
+  { label: 'Frayed Scrap', desc: 'Small offcut with raw or frayed edges' },
+  { label: 'Stained / Distressed', desc: 'Flawed areas to cut around or mend' },
+  { label: 'Thrifted Garment', desc: 'Whole piece ready for deconstruction' },
+];
+
+// Tactile texture options
+const TEXTURE_OPTIONS = [
+  'Sturdy & Structured',
+  'Soft & Drapey',
+  'Ribbed & Corded',
+  'Sheer & Openwork',
+  'Lofty & Warm',
+  'Crisp Slub Weave',
+];
+
+// Surface pattern options
+const PATTERN_OPTIONS = [
+  'Solid Plain',
+  'Yarn-Dyed Stripe',
+  'Plaid / Tartan Check',
+  'Floral Motifs',
+  'Geometric / Quilted',
+  'Printed Graphic',
+];
+
+/**
+ * Intelligent natural language dimension parser
+ * Supports inputs like "a 4 × 4 piece", "4x4", "10x15 in", "35x45 cm", "1.5 meters"
+ */
+function parseNaturalDimensions(text: string): { width: number; height: number; unit: 'cm' | 'in' } | null {
+  if (!text || typeof text !== 'string') return null;
+  const match = text.match(/(\d+(?:\.\d+)?)\s*(?:[x×by*]|and)\s*(\d+(?:\.\d+)?)\s*(cm|in|inch|inches|meters|m)?/i);
+  if (match) {
+    const d1 = parseFloat(match[1]);
+    const d2 = parseFloat(match[2]);
+    let rawUnit = (match[3] || '').toLowerCase();
+    let unit: 'cm' | 'in' = 'cm';
+    if (rawUnit.startsWith('in')) {
+      unit = 'in';
+    } else if (rawUnit.startsWith('m')) {
+      return { width: Math.round(d1 * 100), height: Math.round(d2 * 100), unit: 'cm' };
+    } else if (!rawUnit) {
+      unit = (d1 <= 15 && d2 <= 15) ? 'in' : 'cm';
+    }
+    return { width: d1, height: d2, unit };
+  }
+  return null;
+}
+
 export const FabricStudio: React.FC<FabricStudioProps> = ({
   currentFabric,
   onFabricChange,
@@ -37,10 +120,15 @@ export const FabricStudio: React.FC<FabricStudioProps> = ({
   selectedCategory,
   onCategoryChange,
 }) => {
+  const [studioMode, setStudioMode] = useState<'custom' | 'presets'>('custom');
   const [isDragging, setIsDragging] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [isInspectingImage, setIsInspectingImage] = useState(false);
   const [inspectionBadge, setInspectionBadge] = useState<string | null>(null);
+  const [uncertaintyNotice, setUncertaintyNotice] = useState<string | null>(currentFabric.uncertaintyNotice || null);
+  const [dimensionsInputText, setDimensionsInputText] = useState<string>(
+    currentFabric.dimensionsText || `${currentFabric.dimensions.width} × ${currentFabric.dimensions.height} ${currentFabric.dimensions.unit}`
+  );
   const fileInputRef = useRef<HTMLInputElement>(null);
   const activeUploadIdRef = useRef<string | null>(null);
 
@@ -51,7 +139,7 @@ export const FabricStudio: React.FC<FabricStudioProps> = ({
   const condition = currentFabric.condition;
 
   // Dynamic Pattern Engine Strategy derived from current fabric metrics and matching catalog projects
-  const strategySummary = React.useMemo(() => {
+  const strategySummary = useMemo(() => {
     const w = currentFabric.dimensions.width;
     const h = currentFabric.dimensions.height;
     const u = currentFabric.dimensions.unit;
@@ -65,7 +153,8 @@ export const FabricStudio: React.FC<FabricStudioProps> = ({
     const directlyMatched = evaluated.filter(e => e.feasibility.isDirectlyMatched).map(e => e.title);
     const requiresMod = evaluated.filter(e => !e.feasibility.isDirectlyMatched).map(e => e.title);
 
-    let strategy = `Calculated 2D layout for ${currentFabric.name} (${w}×${h} ${u}, ~${gsm} GSM): `;
+    const itemLabel = currentFabric.clothingType || currentFabric.name;
+    let strategy = `Calculated 2D layout for ${itemLabel} (${w}×${h} ${u}, ~${gsm} GSM): `;
     if (directlyMatched.length > 0) {
       strategy += `${directlyMatched.length} project${directlyMatched.length === 1 ? '' : 's'} fit directly without extra yardage (${directlyMatched.slice(0, 3).join(', ')}${directlyMatched.length > 3 ? `, +${directlyMatched.length - 3} more` : ''}). `;
     } else {
@@ -79,38 +168,58 @@ export const FabricStudio: React.FC<FabricStudioProps> = ({
     return strategy;
   }, [currentFabric]);
 
-  // Handle unit conversion correctly preserving physical dimension
+  // Handle unit conversion preserving physical dimensions
   const handleUnitToggle = (newUnit: 'cm' | 'in') => {
     if (newUnit === unit) return;
 
     if (newUnit === 'in') {
-      // CM -> INCH
       const convertedWidth = Math.max(1, Math.round(width / 2.54));
       const convertedHeight = Math.max(1, Math.round(height / 2.54));
       onFabricChange({
         ...currentFabric,
         dimensions: { width: convertedWidth, height: convertedHeight, unit: 'in' },
+        dimensionsText: `${convertedWidth} × ${convertedHeight} in`,
       });
+      setDimensionsInputText(`${convertedWidth} × ${convertedHeight} in`);
     } else {
-      // INCH -> CM
       const convertedWidth = Math.round(width * 2.54);
       const convertedHeight = Math.round(height * 2.54);
       onFabricChange({
         ...currentFabric,
         dimensions: { width: convertedWidth, height: convertedHeight, unit: 'cm' },
+        dimensionsText: `${convertedWidth} × ${convertedHeight} cm`,
+      });
+      setDimensionsInputText(`${convertedWidth} × ${convertedHeight} cm`);
+    }
+  };
+
+  // Natural language dimensions input handler
+  const handleDimensionsTextChange = (text: string) => {
+    setDimensionsInputText(text);
+    const parsed = parseNaturalDimensions(text);
+    if (parsed) {
+      onFabricChange({
+        ...currentFabric,
+        dimensions: { width: parsed.width, height: parsed.height, unit: parsed.unit },
+        dimensionsText: text,
+      });
+    } else {
+      onFabricChange({
+        ...currentFabric,
+        dimensionsText: text,
       });
     }
   };
 
   // Dimension validation
   const maxDimension = unit === 'cm' ? 400 : 160;
-  const isWidthValid = !isNaN(width) && width >= 2 && width <= maxDimension;
-  const isHeightValid = !isNaN(height) && height >= 2 && height <= maxDimension;
+  const isWidthValid = !isNaN(width) && width >= 1 && width <= maxDimension;
+  const isHeightValid = !isNaN(height) && height >= 1 && height <= maxDimension;
   const isDimensionsValid = isWidthValid && isHeightValid;
 
   const getDimensionErrorMessage = () => {
     if (!isWidthValid || !isHeightValid) {
-      return `Please enter positive dimensions between 2 and ${maxDimension} ${unit}.`;
+      return `Please enter positive dimensions between 1 and ${maxDimension} ${unit} (e.g. "4 × 4 piece" or 35 × 45 cm).`;
     }
     return null;
   };
@@ -121,6 +230,7 @@ export const FabricStudio: React.FC<FabricStudioProps> = ({
 
   const processUploadedFile = (file: File) => {
     setUploadError(null);
+    setUncertaintyNotice(null);
 
     // Validate type
     if (!SUPPORTED_MIME_TYPES.includes(file.type)) {
@@ -144,34 +254,57 @@ export const FabricStudio: React.FC<FabricStudioProps> = ({
       const uploadId = `upload-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
       activeUploadIdRef.current = uploadId;
       
-      // Step 1: Immediate client-side canvas pixel & textile grain analysis (directional anisotropy, openwork, variance)
+      // Step 1: Immediate client-side canvas pixel & textile grain analysis
       const colorProfile = await extractColorsFromDataUrl(result, file.name);
 
-      if (activeUploadIdRef.current !== uploadId) return;
+      // Check if user has explicitly confirmed their fabric color or material
+      const userHasConfirmedColor = Boolean(
+        currentFabric.userConfirmedColor || 
+        (currentFabric.dominantColor && currentFabric.dominantColor !== 'Natural Fiber' && currentFabric.dominantColor !== 'Default' && currentFabric.dominantColor.trim() !== '')
+      );
+      const userConfirmedColorVal = currentFabric.dominantColor;
+      const userConfirmedColorFamily = currentFabric.colorFamily;
+
+      const userHasConfirmedMaterial = Boolean(
+        currentFabric.userConfirmedMaterial || 
+        (currentFabric.clothingType && currentFabric.clothingType.trim() !== '') ||
+        (currentFabric.material && !/item|remnant|sample|test|fabric/i.test(currentFabric.material))
+      );
+      const userConfirmedMaterialVal = currentFabric.clothingType || currentFabric.material;
+
+      // Determine effective color & fiber - preserve user constraints
+      const effectiveColor = userHasConfirmedColor && userConfirmedColorVal ? userConfirmedColorVal : colorProfile.dominantColor;
+      const effectiveColorFamily = userHasConfirmedColor && userConfirmedColorFamily ? userConfirmedColorFamily : colorProfile.colorFamily;
+      const effectiveMaterial = userHasConfirmedMaterial && userConfirmedMaterialVal ? userConfirmedMaterialVal : colorProfile.fiberType;
 
       const customSample: FabricSample = {
         id: `custom-upload-${Date.now()}`,
-        name: `${colorProfile.dominantColor} ${colorProfile.fiberType} Remnant`,
-        material: colorProfile.fiberType,
+        name: `${effectiveColor} ${effectiveMaterial} Item`,
+        clothingType: currentFabric.clothingType || '',
+        material: effectiveMaterial,
         weave: colorProfile.weave,
         weightGsm: colorProfile.weightGsm,
         condition: condition,
         dimensions: { width, height, unit },
-        dominantColor: colorProfile.dominantColor,
-        colorFamily: colorProfile.colorFamily,
+        dimensionsText: dimensionsInputText,
+        dominantColor: effectiveColor,
+        colorFamily: effectiveColorFamily,
         pattern: colorProfile.pattern,
         colorPalette: colorProfile.colorPalette,
         texture: `${colorProfile.structuralBody} with ${colorProfile.tensileDrape}`,
         imageUrl: result,
-        tagline: `Authentic ${colorProfile.dominantColor} ${colorProfile.fiberType} (~${colorProfile.weightGsm} GSM) optimized for ${colorProfile.archetype} zero-waste blueprints.`,
+        tagline: `Authentic ${effectiveColor} ${effectiveMaterial} (~${colorProfile.weightGsm} GSM) optimized for zero-waste blueprints.`,
         structuralBody: colorProfile.structuralBody,
         tensileDrape: colorProfile.tensileDrape,
         archetype: colorProfile.archetype,
+        isCustomItem: true,
+        userConfirmedColor: userHasConfirmedColor,
+        userConfirmedMaterial: userHasConfirmedMaterial,
       };
       onFabricChange(customSample);
 
       setIsInspectingImage(true);
-      setInspectionBadge(`Analyzing textile architecture (${colorProfile.fiberType}, ${colorProfile.weightGsm} GSM, ${colorProfile.dominantColor}) with Gemini Vision...`);
+      setInspectionBadge(`Analyzing textile swatch (${effectiveMaterial}, ${effectiveColor}) with Gemini Vision...`);
 
       try {
         const res = await inspectFabricImage(result);
@@ -179,11 +312,6 @@ export const FabricStudio: React.FC<FabricStudioProps> = ({
 
         if (res.success && res.inspection) {
           const insp = res.inspection;
-          const validConditions = ['Crisp Remnant', 'Gently Washed', 'Vintage Worn', 'Frayed Scrap'] as const;
-          const finalCond = validConditions.includes(insp.condition as any)
-            ? (insp.condition as typeof validConditions[number])
-            : condition;
-
           const formattedColors = Array.isArray(insp.colorPalette) && insp.colorPalette.length > 0
             ? insp.colorPalette.map((c: any, i: number) => {
                 if (typeof c === 'string') return { name: `Tone ${i + 1}`, hex: c };
@@ -191,23 +319,34 @@ export const FabricStudio: React.FC<FabricStudioProps> = ({
               })
             : colorProfile.colorPalette;
 
-          const detectedFiber = insp.fiberType || colorProfile.fiberType;
-          const detectedColor = insp.dominantColor || colorProfile.dominantColor;
+          // Never let uncertain photo analysis silently override user-confirmed color or material
+          const detectedColor = userHasConfirmedColor && userConfirmedColorVal ? userConfirmedColorVal : (insp.dominantColor || colorProfile.dominantColor);
+          const detectedFiber = userHasConfirmedMaterial && userConfirmedMaterialVal ? userConfirmedMaterialVal : (insp.fiberType || colorProfile.fiberType);
           const detectedPattern = insp.pattern || colorProfile.pattern;
-          const detectedFamily = (insp.colorFamily as any) || colorProfile.colorFamily;
+          const detectedFamily = userHasConfirmedColor && userConfirmedColorFamily ? userConfirmedColorFamily : ((insp.colorFamily as any) || colorProfile.colorFamily);
           const detectedGsm = insp.weightGsm || colorProfile.weightGsm;
           const detectedWeave = insp.weave || colorProfile.weave;
           const detectedBody = insp.structuralBody || colorProfile.structuralBody;
           const detectedDrape = insp.tensileDrape || colorProfile.tensileDrape;
           const detectedArchetype = (insp.archetype as any) || colorProfile.archetype;
 
+          // Check if visual confidence is low or uncertain, or if photo suggested different color
+          const confidenceLevel = insp.confidence || 'medium';
+          let notice: string | null = null;
+          if (userHasConfirmedColor && userConfirmedColorVal && insp.dominantColor && insp.dominantColor.toLowerCase() !== userConfirmedColorVal.toLowerCase()) {
+            notice = `Photo inspection detected ${insp.dominantColor}, but your confirmed color constraint (${userConfirmedColorVal}) was preserved.`;
+            setUncertaintyNotice(notice);
+          } else if (confidenceLevel === 'low' || detectedFiber === 'unknown' || detectedFiber === 'Textile Remnant') {
+            notice = `Photo inspection has partial uncertainty: detected ${detectedColor}, but weave structure and fiber composition could not be confirmed definitively. Please verify or update your clothing type, dimensions, and texture below for accurate blueprint matching.`;
+            setUncertaintyNotice(notice);
+          }
+
           const updatedSample: FabricSample = {
             ...customSample,
-            name: insp.suggestedName || `${detectedColor} ${detectedFiber} Remnant`,
+            name: insp.suggestedName && !userHasConfirmedMaterial && !userHasConfirmedColor ? insp.suggestedName : `${detectedColor} ${detectedFiber} Item`,
             material: detectedFiber,
             weave: detectedWeave,
             weightGsm: detectedGsm,
-            condition: finalCond,
             texture: detectedBody ? `${detectedBody} • ${detectedDrape}` : (insp.texture || customSample.texture),
             tagline: insp.tagline || customSample.tagline,
             dominantColor: detectedColor,
@@ -217,31 +356,19 @@ export const FabricStudio: React.FC<FabricStudioProps> = ({
             structuralBody: detectedBody,
             tensileDrape: detectedDrape,
             archetype: detectedArchetype,
+            uncertaintyNotice: notice,
+            userConfirmedColor: userHasConfirmedColor,
+            userConfirmedMaterial: userHasConfirmedMaterial,
           };
           onFabricChange(updatedSample);
-          setInspectionBadge(`✨ AI Verified: ${detectedColor} ${detectedFiber} • ${detectedWeave} • ~${detectedGsm} GSM • ${detectedArchetype}`);
-          onAnalyze(updatedSample);
+          setInspectionBadge(`✨ AI Verified: ${detectedColor} ${detectedFiber} • ${detectedWeave} • ~${detectedGsm} GSM`);
         } else {
-          const fallbackSample: FabricSample = {
-            ...customSample,
-            name: `${colorProfile.dominantColor} ${colorProfile.fiberType} Remnant`,
-            material: colorProfile.fiberType,
-          };
-          onFabricChange(fallbackSample);
-          setInspectionBadge(`🎨 Identified: ${colorProfile.dominantColor} ${colorProfile.fiberType} • ${colorProfile.weave} • ~${colorProfile.weightGsm} GSM`);
-          onAnalyze(fallbackSample);
+          setInspectionBadge(`🎨 Identified: ${effectiveColor} ${effectiveMaterial} • ${colorProfile.weave}`);
         }
       } catch (err) {
         if (activeUploadIdRef.current !== uploadId) return;
         console.warn('[Vision Inspection Notice]', err);
-        const fallbackSample: FabricSample = {
-          ...customSample,
-          name: `${colorProfile.dominantColor} ${colorProfile.fiberType} Remnant`,
-          material: colorProfile.fiberType,
-        };
-        onFabricChange(fallbackSample);
-        setInspectionBadge(`🎨 Identified: ${colorProfile.dominantColor} ${colorProfile.fiberType} • ${colorProfile.weave} • ~${colorProfile.weightGsm} GSM`);
-        onAnalyze(fallbackSample);
+        setInspectionBadge(`🎨 Identified: ${effectiveColor} ${effectiveMaterial}`);
       } finally {
         if (activeUploadIdRef.current === uploadId) {
           setIsInspectingImage(false);
@@ -269,7 +396,19 @@ export const FabricStudio: React.FC<FabricStudioProps> = ({
   const handleSelectSample = (sample: FabricSample) => {
     setUploadError(null);
     setInspectionBadge(null);
+    setUncertaintyNotice(null);
+    setDimensionsInputText(`${sample.dimensions.width} × ${sample.dimensions.height} ${sample.dimensions.unit}`);
     onFabricChange(sample);
+  };
+
+  const handleRemovePhoto = () => {
+    onFabricChange({
+      ...currentFabric,
+      imageUrl: '',
+      isCustomItem: true,
+    });
+    setInspectionBadge(null);
+    setUncertaintyNotice(null);
   };
 
   const handleTriggerAnalysis = () => {
@@ -282,96 +421,132 @@ export const FabricStudio: React.FC<FabricStudioProps> = ({
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Section Heading */}
-        <div className="max-w-3xl mb-12">
+        <div className="max-w-3xl mb-8">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-bluegray text-navy text-xs font-semibold uppercase tracking-wider mb-3 border border-bluegray-200">
             <Scan className="w-3.5 h-3.5 text-coral" />
-            <span>Interactive Fabric Studio</span>
+            <span>Find My Project • Studio</span>
           </div>
           <h2 className="font-serif-title text-3xl sm:text-4xl lg:text-5xl text-navy font-semibold leading-tight">
-            Feed the studio with your scraps.
+            Describe your clothing or fabric.
           </h2>
           <p className="mt-4 text-base sm:text-lg text-charcoal-muted leading-relaxed">
-            Drop an image of your textile remnant or test instantly using curated studio specimens. Our pattern engine simulates cutting layouts and calculates zero-waste blueprints based on your scrap dimensions.
+            Enter your own clothing or fabric details below—such as garment type, dimensions (e.g. &ldquo;a 4 × 4 piece&rdquo;), color, texture, and condition. We synthesize zero-waste blueprints specifically tailored to your item.
           </p>
         </div>
 
-        {/* Quick Test Samples Bar */}
-        <div className="mb-10 p-5 rounded-2xl bg-surface border border-navy/15 shadow-sm">
-          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-4 pb-3 border-b border-navy/10">
-            <div>
-              <h3 className="font-serif text-lg font-bold text-navy">
-                Try Evaluator Scraps <span className="text-sm font-sans font-normal text-charcoal-muted">(1-Click Test)</span>
-              </h3>
-              <p className="text-xs text-charcoal-muted mt-0.5">
-                Click any specimen below to immediately load authentic fabric data & imagery into the studio.
-              </p>
-            </div>
-            <span className="text-xs font-mono text-coral bg-coral/10 px-2.5 py-1 rounded-full font-medium">
-              {SAMPLE_FABRICS.length} Specimens Ready
-            </span>
-          </div>
+        {/* Mode Selector Tabs: Describe My Item vs Quick Sample Presets */}
+        <div className="flex items-center gap-3 mb-8 p-1.5 bg-surface rounded-2xl border border-navy/15 max-w-fit shadow-xs">
+          <button
+            type="button"
+            onClick={() => setStudioMode('custom')}
+            className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
+              studioMode === 'custom'
+                ? 'bg-navy text-paper shadow-sm'
+                : 'text-charcoal-muted hover:text-navy hover:bg-paper-100'
+            }`}
+          >
+            <Sliders className="w-3.5 h-3.5 text-coral" />
+            <span>Describe My Own Item (Find My Project)</span>
+          </button>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            {SAMPLE_FABRICS.map((sample) => {
-              const isSelected = currentFabric.id === sample.id;
-              return (
-                <button
-                  key={sample.id}
-                  onClick={() => handleSelectSample(sample)}
-                  aria-label={`Select specimen ${sample.name}`}
-                  className={`group text-left p-3 rounded-xl border transition-all duration-200 relative overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-denim ${
-                    isSelected 
-                      ? 'border-navy bg-bluegray/40 ring-2 ring-navy/20 shadow-md' 
-                      : 'border-navy/15 bg-surface hover:border-navy/40 hover:bg-paper-50'
-                  }`}
-                >
-                  <div className="aspect-[4/3] rounded-lg overflow-hidden mb-2.5 bg-paper-200 relative">
-                    <img 
-                      src={sample.imageUrl} 
-                      alt={sample.name} 
-                      onError={(e) => {
-                        e.currentTarget.src = 'https://images.unsplash.com/photo-1582533561751-ef6f6ab93a2e?auto=format&fit=crop&w=800&q=80';
-                      }}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
-                    />
-                    {isSelected && (
-                      <div className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-navy text-paper flex items-center justify-center shadow">
-                        <Check className="w-3 h-3 text-paper" />
-                      </div>
-                    )}
-                  </div>
-                  <p className="font-serif text-sm font-bold text-navy truncate group-hover:text-coral transition-colors">
-                    {sample.name}
-                  </p>
-                  <p className="text-[11px] text-charcoal-muted truncate mt-0.5">
-                    {sample.material}
-                  </p>
-                  <div className="mt-1.5 flex items-center gap-1.5 text-[10px] font-mono text-navy/70">
-                    <span>{sample.dimensions.width}×{sample.dimensions.height} {sample.dimensions.unit}</span>
-                    <span>•</span>
-                    <span>{sample.weightGsm} GSM</span>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
+          <button
+            type="button"
+            onClick={() => setStudioMode('presets')}
+            className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
+              studioMode === 'presets'
+                ? 'bg-navy text-paper shadow-sm'
+                : 'text-charcoal-muted hover:text-navy hover:bg-paper-100'
+            }`}
+          >
+            <Layers className="w-3.5 h-3.5 text-denim" />
+            <span>Try Quick Presets ({SAMPLE_FABRICS.length} Samples)</span>
+          </button>
         </div>
+
+        {/* Preset Specimens Bar (Visible in presets mode or quick access) */}
+        {studioMode === 'presets' && (
+          <div className="mb-10 p-5 rounded-2xl bg-surface border border-navy/15 shadow-sm animate-fadeIn">
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-4 pb-3 border-b border-navy/10">
+              <div>
+                <h3 className="font-serif text-lg font-bold text-navy">
+                  Try Evaluator Specimens <span className="text-sm font-sans font-normal text-charcoal-muted">(1-Click Test)</span>
+                </h3>
+                <p className="text-xs text-charcoal-muted mt-0.5">
+                  Click any specimen to load real fabric metrics, dimensions, and swatch photo.
+                </p>
+              </div>
+              <span className="text-xs font-mono text-coral bg-coral/10 px-2.5 py-1 rounded-full font-medium">
+                {SAMPLE_FABRICS.length} Specimens Ready
+              </span>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              {SAMPLE_FABRICS.map((sample) => {
+                const isSelected = currentFabric.id === sample.id;
+                return (
+                  <button
+                    key={sample.id}
+                    onClick={() => handleSelectSample(sample)}
+                    aria-label={`Select specimen ${sample.name}`}
+                    className={`group text-left p-3 rounded-xl border transition-all duration-200 relative overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-denim ${
+                      isSelected 
+                        ? 'border-navy bg-bluegray/40 ring-2 ring-navy/20 shadow-md' 
+                        : 'border-navy/15 bg-surface hover:border-navy/40 hover:bg-paper-50'
+                    }`}
+                  >
+                    <div className="aspect-[4/3] rounded-lg overflow-hidden mb-2.5 bg-paper-200 relative">
+                      <img 
+                        src={sample.imageUrl} 
+                        alt={sample.name} 
+                        onError={(e) => {
+                          e.currentTarget.src = 'https://images.unsplash.com/photo-1582533561751-ef6f6ab93a2e?auto=format&fit=crop&w=800&q=80';
+                        }}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
+                      />
+                      {isSelected && (
+                        <div className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-navy text-paper flex items-center justify-center shadow">
+                          <Check className="w-3 h-3 text-paper" />
+                        </div>
+                      )}
+                    </div>
+                    <p className="font-serif text-sm font-bold text-navy truncate group-hover:text-coral transition-colors">
+                      {sample.name}
+                    </p>
+                    <p className="text-[11px] text-charcoal-muted truncate mt-0.5">
+                      {sample.material}
+                    </p>
+                    <div className="mt-1.5 flex items-center gap-1.5 text-[10px] font-mono text-navy/70">
+                      <span>{sample.dimensions.width}×{sample.dimensions.height} {sample.dimensions.unit}</span>
+                      <span>•</span>
+                      <span>{sample.weightGsm} GSM</span>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Main Studio Interactive Workspace: 2-Column Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           
           {/* Left: Drag & Drop Dropzone + Live Preview */}
-          <div className="lg:col-span-7">
-            <div className="bg-surface rounded-3xl p-6 sm:p-8 border border-navy/15 shadow-warm">
+          <div className="lg:col-span-5 space-y-6">
+            <div className="bg-surface rounded-3xl p-6 sm:p-7 border border-navy/15 shadow-warm">
               <div className="flex items-center justify-between mb-4">
                 <span className="text-xs uppercase font-mono tracking-wider text-navy font-semibold flex items-center gap-1.5">
                   <span className="w-2 h-2 rounded-full bg-coral"></span>
-                  Active Fabric Remnant
+                  Visual Swatch or Item Photo
                 </span>
-                {currentFabric && (
-                  <span className="text-xs text-charcoal-muted font-medium font-mono">
-                    {width} × {height} {unit}
-                  </span>
+                {currentFabric.imageUrl && (
+                  <button
+                    type="button"
+                    onClick={handleRemovePhoto}
+                    className="text-[11px] font-mono text-charcoal-muted hover:text-coral flex items-center gap-1"
+                  >
+                    <X className="w-3 h-3" />
+                    <span>Clear Photo</span>
+                  </button>
                 )}
               </div>
 
@@ -395,6 +570,17 @@ export const FabricStudio: React.FC<FabricStudioProps> = ({
                 </div>
               )}
 
+              {/* Uncertainty Alert Banner */}
+              {uncertaintyNotice && (
+                <div className="mb-4 p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900 flex items-start gap-2.5 animate-fadeIn">
+                  <AlertCircle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+                  <div className="space-y-1">
+                    <span className="font-semibold block">Input Clarity Notice</span>
+                    <span className="text-[11px] leading-relaxed block text-amber-800">{uncertaintyNotice}</span>
+                  </div>
+                </div>
+              )}
+
               {/* Upload Drop Area */}
               <div
                 onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
@@ -409,8 +595,8 @@ export const FabricStudio: React.FC<FabricStudioProps> = ({
                 }}
                 tabIndex={0}
                 role="button"
-                aria-label="Upload fabric scrap image"
-                className={`relative rounded-2xl overflow-hidden cursor-pointer transition-all duration-300 min-h-[300px] sm:min-h-[360px] flex flex-col items-center justify-center border-2 border-dashed focus:outline-none focus-visible:ring-2 focus-visible:ring-denim ${
+                aria-label="Upload clothing or fabric photo"
+                className={`relative rounded-2xl overflow-hidden cursor-pointer transition-all duration-300 min-h-[260px] sm:min-h-[300px] flex flex-col items-center justify-center border-2 border-dashed focus:outline-none focus-visible:ring-2 focus-visible:ring-denim ${
                   isDragging 
                     ? 'border-coral bg-coral/5 scale-[0.99]' 
                     : 'border-navy/25 hover:border-navy/50 bg-paper-50'
@@ -425,14 +611,14 @@ export const FabricStudio: React.FC<FabricStudioProps> = ({
                 />
 
                 {currentFabric.imageUrl ? (
-                  <div className="relative w-full h-full min-h-[320px] sm:min-h-[360px] group">
+                  <div className="relative w-full h-full min-h-[280px] group">
                     <img
                       src={currentFabric.imageUrl}
                       alt={currentFabric.name}
                       onError={(e) => {
                         e.currentTarget.src = 'https://images.unsplash.com/photo-1582533561751-ef6f6ab93a2e?auto=format&fit=crop&w=800&q=80';
                       }}
-                      className="w-full h-full object-cover min-h-[320px] sm:min-h-[360px]"
+                      className="w-full h-full object-cover min-h-[280px]"
                     />
                     
                     {/* Dark gradient overlay on hover */}
@@ -452,18 +638,20 @@ export const FabricStudio: React.FC<FabricStudioProps> = ({
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleSelectSample(SAMPLE_FABRICS[0]);
+                          handleRemovePhoto();
                         }}
                         className="px-4 py-2 rounded-full bg-coral text-paper text-xs font-semibold flex items-center gap-1.5 shadow hover:bg-coral-dark transition-colors"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
-                        Reset Specimen
+                        Clear Photo
                       </button>
                     </div>
 
                     {/* Bottom metadata chip */}
                     <div className="absolute bottom-3 left-3 right-3 bg-paper/95 backdrop-blur-md px-3.5 py-2 rounded-xl border border-navy/10 flex items-center justify-between text-xs text-charcoal">
-                      <span className="font-serif font-bold text-navy truncate">{currentFabric.name}</span>
+                      <span className="font-serif font-bold text-navy truncate">
+                        {currentFabric.clothingType || currentFabric.name}
+                      </span>
                       <span className="font-mono text-[11px] text-coral font-semibold uppercase">{condition}</span>
                     </div>
                   </div>
@@ -473,10 +661,10 @@ export const FabricStudio: React.FC<FabricStudioProps> = ({
                       <UploadCloud className="w-7 h-7 text-coral" />
                     </div>
                     <p className="font-serif text-lg font-bold text-navy">
-                      Drop your fabric scrap photo here
+                      Drop an image of your item or fabric
                     </p>
                     <p className="text-xs text-charcoal-muted leading-relaxed">
-                      Supports JPG, PNG, WEBP (max 8MB). Lay your remnant flat for best visual preview.
+                      Photo is optional. Lay your item or scrap flat for best color & weave detection, or describe it with text.
                     </p>
                     <span className="inline-block px-4 py-2 rounded-full bg-navy text-paper text-xs font-medium mt-2">
                       Browse Files
@@ -485,187 +673,127 @@ export const FabricStudio: React.FC<FabricStudioProps> = ({
                 )}
               </div>
 
-              {/* Uploaded swatch workflow transparency */}
-              <div className="mt-4 space-y-2">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-charcoal-muted bg-paper-100 p-3 rounded-xl border border-navy/10">
-                  <div className="flex items-center gap-1.5 text-navy font-medium">
-                    <Eye className="w-3.5 h-3.5 text-coral" />
-                    <span>Photo Analyzed: Visual Swatch, Color Palette & Weave Grain</span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    className="text-navy hover:text-coral font-bold transition-colors underline focus:outline-none text-xs self-start sm:self-auto"
-                  >
-                    Upload Custom Photo
-                  </button>
+              {/* Photo Analysis Badge & Status */}
+              {inspectionBadge && (
+                <div className="mt-4 p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-900 flex items-center justify-between gap-2 animate-fadeIn">
+                  <span className="font-mono text-[11px] font-medium leading-tight">
+                    {inspectionBadge}
+                  </span>
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
                 </div>
-                <p className="text-[10px] text-charcoal-muted leading-tight px-1">
-                  Note: Camera photos provide color and texture extraction. Physical remnant dimensions (width × length) must be confirmed in the Textile Parameters panel to calculate cutting fit.
+              )}
+
+              {/* 2D Pattern Calculation Strategy Card */}
+              <div className="mt-5 p-4 rounded-2xl bg-navy/5 border border-navy/15 space-y-2.5 text-xs">
+                <span className="font-mono uppercase font-bold text-navy flex items-center gap-1.5 text-[11px]">
+                  <Scissors className="w-3.5 h-3.5 text-coral" />
+                  Live Geometric Fit Strategy
+                </span>
+                <p className="text-charcoal leading-relaxed text-[11px]">
+                  {strategySummary}
                 </p>
+                <div className="flex items-center justify-between pt-1 font-mono text-[10px] text-charcoal-muted border-t border-navy/10">
+                  <span>Surface: {width} × {height} {unit}</span>
+                  <span>Total Area: ~{Math.round(unit === 'in' ? width * height * 6.45 : width * height)} cm²</span>
+                </div>
               </div>
 
             </div>
           </div>
 
-          {/* Right: Specimen Parameters & Analysis Trigger */}
-          <div className="lg:col-span-5 space-y-6">
+          {/* Right: Comprehensive "Find My Project" Item Details Form */}
+          <div className="lg:col-span-7 space-y-6">
             <div className="bg-surface rounded-3xl p-6 sm:p-8 border border-navy/15 shadow-warm space-y-6">
               
-              <div className="border-b border-navy/10 pb-4">
-                <h3 className="font-serif text-xl font-bold text-navy flex items-center gap-2">
-                  <Sliders className="w-5 h-5 text-coral" />
-                  Textile Parameters
-                </h3>
-                <p className="text-xs text-charcoal-muted mt-1">
-                  Adjust physical metrics to filter and size suitable zero-waste cutting patterns.
-                </p>
+              <div className="border-b border-navy/10 pb-4 flex items-center justify-between">
+                <div>
+                  <h3 className="font-serif text-xl sm:text-2xl font-bold text-navy flex items-center gap-2">
+                    <Sliders className="w-5 h-5 text-coral" />
+                    Item & Fabric Details
+                  </h3>
+                  <p className="text-xs text-charcoal-muted mt-1">
+                    Describe your piece. Every detail dynamically shapes the generated blueprints.
+                  </p>
+                </div>
+                {isInspectingImage && (
+                  <span className="text-[11px] font-mono font-bold text-coral flex items-center gap-1 animate-pulse bg-coral/10 px-2.5 py-1 rounded-full">
+                    <Sparkles className="w-3 h-3 animate-spin" />
+                    Gemini Vision Active
+                  </span>
+                )}
               </div>
 
-              {/* Fiber & Material Profile (Supports AI Vision & Quick-Select) */}
-              <div className="p-4 rounded-2xl bg-paper-100 border border-navy/15 space-y-3">
+              {/* 1. Clothing or Fabric Type Input + Suggestions */}
+              <div className="space-y-2.5">
                 <div className="flex items-center justify-between">
-                  <label htmlFor="fabric-material-input" className="text-xs font-bold text-navy uppercase tracking-wider flex items-center gap-1.5 font-mono">
-                    <Layers className="w-3.5 h-3.5 text-coral" />
-                    Fiber Composition & Type
+                  <label htmlFor="item-type-input" className="text-xs font-bold text-navy uppercase tracking-wider flex items-center gap-1.5 font-mono">
+                    <Tag className="w-3.5 h-3.5 text-coral" />
+                    Clothing or Fabric Type
                   </label>
-                  {isInspectingImage && (
-                    <span className="text-[10px] font-mono font-bold text-coral flex items-center gap-1 animate-pulse">
-                      <Sparkles className="w-3 h-3 animate-spin" />
-                      Gemini Vision Active
-                    </span>
-                  )}
+                  <span className="text-[10px] text-charcoal-muted font-mono">Custom or preset</span>
                 </div>
 
-                {/* AI Detection Banner */}
-                {inspectionBadge && (
-                  <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-900 flex flex-col sm:flex-row sm:items-center justify-between gap-2 animate-fadeIn">
-                    <span className="font-mono text-[11px] leading-tight font-medium">
-                      {inspectionBadge}
-                    </span>
-                    {!isInspectingImage && (
-                      <button
-                        type="button"
-                        onClick={handleTriggerAnalysis}
-                        disabled={isAnalyzing}
-                        className="self-start sm:self-auto px-3 py-1 rounded-lg bg-emerald-700 text-white font-sans text-xs font-semibold hover:bg-emerald-800 transition-colors flex items-center gap-1.5 whitespace-nowrap shadow-2xs cursor-pointer"
-                      >
-                        <Sparkles className="w-3.5 h-3.5 text-emerald-200" />
-                        <span>Run TinyFish Simulation</span>
-                      </button>
-                    )}
-                  </div>
-                )}
+                <input
+                  id="item-type-input"
+                  type="text"
+                  value={currentFabric.clothingType || currentFabric.material || ''}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    onFabricChange({
+                      ...currentFabric,
+                      clothingType: val,
+                      material: val,
+                      userConfirmedMaterial: true,
+                      name: val ? `${currentFabric.dominantColor || ''} ${val}`.trim() : currentFabric.name,
+                      isCustomItem: true,
+                    });
+                  }}
+                  placeholder="e.g. Vintage Levi's Denim Jacket, Linen Button-Down, Wool Sweater, Cotton Bedsheet..."
+                  className="w-full bg-paper border border-navy/20 rounded-xl px-4 py-2.5 text-xs sm:text-sm font-medium text-navy focus:outline-none focus:ring-2 focus:ring-navy/30"
+                />
 
-                {/* Editable Material Input */}
-                <div>
-                  <input
-                    id="fabric-material-input"
-                    type="text"
-                    value={currentFabric.material}
-                    onChange={(e) => {
-                      onFabricChange({
-                        ...currentFabric,
-                        material: e.target.value,
-                        name: currentFabric.name.includes('Remnant') ? `${e.target.value} Remnant` : currentFabric.name,
-                      });
-                    }}
-                    placeholder="e.g. Mulberry Silk, Raw Indigo Denim, Washed Linen..."
-                    className="w-full bg-paper border border-navy/20 rounded-xl px-3.5 py-2 text-xs font-serif font-bold text-navy focus:outline-none focus:ring-2 focus:ring-navy/30"
-                  />
-                  <span className="text-[10px] text-charcoal-muted mt-1 block">
-                    Type your specific fiber or click a preset below to tailor zero-waste patterns & live research.
-                  </span>
-                </div>
-
-                {/* Quick Fiber Presets */}
+                {/* Quick Suggestion Pills */}
                 <div className="flex flex-wrap gap-1.5 pt-1">
-                  {[
-                    { name: 'Embroidered Guipure Lace', gsm: 140, weave: 'Openwork Guipure Floral', archetype: 'lace-sheer', body: 'Openwork Delicate Floral Lace', drape: 'Fluid delicate sheer drape with scalloped border' },
-                    { name: 'Raw Indigo Denim', gsm: 380, weave: '3/1 Right-Hand Twill', archetype: 'denim-workwear', body: 'Rigid Heavyweight Twill', drape: 'High structural rigidity and boxy crease retention' },
-                    { name: 'Wide-Wale Corduroy', gsm: 340, weave: 'Wale Ribbed Velvet', archetype: 'corduroy-velvet', body: 'Structured Wale Ribbing', drape: 'Tactile plush drape with directional perpendicular ridge' },
-                    { name: 'Mulberry Silk', gsm: 95, weave: 'High-Lustre Satin Weave', archetype: 'silk-satin', body: 'Ultra-Fine Lustrous Filament', drape: 'Liquid high-fluidity cascading bias drape' },
-                    { name: 'Washed Linen', gsm: 210, weave: 'Plain Slub Weave', archetype: 'linen-slub', body: 'Airy Breathable Slub', drape: 'Crisp organic structure with natural rumpled recovery' },
-                    { name: 'Merino Wool Tweed', gsm: 420, weave: 'Heavy Plain Tweed Weave', archetype: 'wool-tweed', body: 'Coarse Lofty Wool Blend', drape: 'Firm tailoring resilience with thermal loft' },
-                    { name: 'Organic Cotton', gsm: 180, weave: 'Balanced Plain Weave', archetype: 'cotton-handloom', body: 'Soft Breathable Plain Weave', drape: 'Gentle relaxed drape with malleable fold lines' },
-                    { name: 'Heavy Canvas', gsm: 400, weave: 'Tight Duck Canvas', archetype: 'denim-workwear', body: 'Ultra-Durable Canvas', drape: 'Extra-rigid load-bearing structure' },
-                  ].map((preset) => {
-                    const isCurrent = currentFabric.material.toLowerCase().includes(preset.name.toLowerCase().split(' ').pop() || '');
+                  {CLOTHING_SUGGESTIONS.map((sug) => {
+                    const isSelected = (currentFabric.clothingType || currentFabric.material || '').toLowerCase().includes(sug.label.toLowerCase().split(' ')[0]);
                     return (
                       <button
-                        key={preset.name}
+                        key={sug.label}
                         type="button"
                         onClick={() => {
                           onFabricChange({
                             ...currentFabric,
-                            material: preset.name,
-                            name: `${currentFabric.dominantColor} ${preset.name} Remnant`,
-                            weightGsm: preset.gsm,
-                            weave: preset.weave,
-                            structuralBody: preset.body,
-                            tensileDrape: preset.drape,
-                            archetype: preset.archetype as any,
-                            texture: `${preset.body} • ${preset.drape}`,
-                            tagline: `Authentic ${currentFabric.dominantColor} ${preset.name} (~${preset.gsm} GSM) optimized for ${preset.archetype} zero-waste blueprints.`,
+                            clothingType: sug.label,
+                            material: sug.fiber,
+                            userConfirmedMaterial: true,
+                            name: `${currentFabric.dominantColor || ''} ${sug.label}`.trim(),
+                            weightGsm: sug.gsm,
+                            archetype: sug.archetype as any,
+                            structuralBody: sug.body,
+                            tensileDrape: sug.drape,
+                            texture: `${sug.body} • ${sug.drape}`,
+                            isCustomItem: true,
                           });
-                          setInspectionBadge(`✨ Configured: ${currentFabric.dominantColor} ${preset.name} (~${preset.gsm} GSM • ${preset.archetype})`);
                         }}
                         className={`px-2.5 py-1 rounded-lg text-[11px] font-mono transition-all ${
-                          isCurrent
+                          isSelected
                             ? 'bg-navy text-paper font-bold shadow-xs'
                             : 'bg-paper border border-navy/15 text-charcoal hover:border-coral hover:text-coral'
                         }`}
                       >
-                        {preset.name}
+                        {sug.label}
                       </button>
                     );
                   })}
                 </div>
-
-                {/* AI Textile Quality & Structural Analysis Diagnostic Card */}
-                <div className="mt-3 p-3.5 rounded-xl bg-navy/5 border border-navy/15 space-y-2 text-xs">
-                  <div className="flex items-center justify-between border-b border-navy/10 pb-2">
-                    <span className="font-mono uppercase font-bold text-navy flex items-center gap-1.5 text-[11px]">
-                      <Sparkles className="w-3.5 h-3.5 text-coral" />
-                      Textile Quality & Structural Profile
-                    </span>
-                    <span className="px-2 py-0.5 rounded-full bg-navy text-paper font-mono text-[10px] font-bold uppercase tracking-wider">
-                      {currentFabric.archetype || 'Custom Fiber'}
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-2 pt-1 font-mono text-[11px]">
-                    <div className="bg-paper p-2 rounded-lg border border-navy/10">
-                      <span className="text-charcoal-muted text-[10px] block uppercase font-sans font-semibold">Fiber Architecture</span>
-                      <span className="text-navy font-bold truncate block">{currentFabric.material}</span>
-                    </div>
-                    <div className="bg-paper p-2 rounded-lg border border-navy/10">
-                      <span className="text-charcoal-muted text-[10px] block uppercase font-sans font-semibold">Weave Structure</span>
-                      <span className="text-navy font-bold truncate block">{currentFabric.weave}</span>
-                    </div>
-                    <div className="bg-paper p-2 rounded-lg border border-navy/10">
-                      <span className="text-charcoal-muted text-[10px] block uppercase font-sans font-semibold">Weight & Density</span>
-                      <span className="text-navy font-bold truncate block">~{currentFabric.weightGsm} GSM ({currentFabric.weightGsm >= 300 ? 'Heavyweight' : currentFabric.weightGsm >= 180 ? 'Midweight' : 'Lightweight'})</span>
-                    </div>
-                    <div className="bg-paper p-2 rounded-lg border border-navy/10">
-                      <span className="text-charcoal-muted text-[10px] block uppercase font-sans font-semibold">Tensile Drape</span>
-                      <span className="text-navy font-bold truncate block">{currentFabric.tensileDrape || (currentFabric.weightGsm >= 300 ? 'Structured Rigid' : 'Fluid Drape')}</span>
-                    </div>
-                  </div>
-
-                  <div className="bg-coral/5 border border-coral/20 rounded-lg p-2.5 text-[11px] text-navy">
-                    <span className="font-semibold text-coral-dark">Pattern Engine Strategy: </span>
-                    <span className="text-charcoal leading-relaxed">{strategySummary}</span>
-                  </div>
-                </div>
               </div>
 
-              {/* Dimensions Input with Unit Toggle */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <label htmlFor="fabric-width-input" className="text-xs font-bold text-navy uppercase tracking-wider flex items-center gap-1.5">
+              {/* 2. Dimensions or Amount (Supports Natural Language like "a 4 × 4 piece" & Numerical W×H) */}
+              <div className="space-y-3 p-4 rounded-2xl bg-paper-100 border border-navy/15">
+                <div className="flex items-center justify-between">
+                  <label htmlFor="natural-dimensions-input" className="text-xs font-bold text-navy uppercase tracking-wider flex items-center gap-1.5 font-mono">
                     <Ruler className="w-3.5 h-3.5 text-coral" />
-                    Remnant Dimensions
+                    Dimensions or Amount
                   </label>
                   
                   {/* Unit switcher with conversion */}
@@ -673,7 +801,7 @@ export const FabricStudio: React.FC<FabricStudioProps> = ({
                     <button
                       type="button"
                       onClick={() => handleUnitToggle('cm')}
-                      className={`px-2.5 py-0.5 rounded-md font-mono text-[11px] transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-denim ${
+                      className={`px-2.5 py-0.5 rounded-md font-mono text-[11px] transition-colors focus:outline-none ${
                         unit === 'cm' ? 'bg-navy text-paper font-bold' : 'text-charcoal-muted hover:text-navy'
                       }`}
                     >
@@ -682,7 +810,7 @@ export const FabricStudio: React.FC<FabricStudioProps> = ({
                     <button
                       type="button"
                       onClick={() => handleUnitToggle('in')}
-                      className={`px-2.5 py-0.5 rounded-md font-mono text-[11px] transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-denim ${
+                      className={`px-2.5 py-0.5 rounded-md font-mono text-[11px] transition-colors focus:outline-none ${
                         unit === 'in' ? 'bg-navy text-paper font-bold' : 'text-charcoal-muted hover:text-navy'
                       }`}
                     >
@@ -691,14 +819,29 @@ export const FabricStudio: React.FC<FabricStudioProps> = ({
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
+                {/* Natural text entry */}
+                <div>
+                  <input
+                    id="natural-dimensions-input"
+                    type="text"
+                    value={dimensionsInputText}
+                    onChange={(e) => handleDimensionsTextChange(e.target.value)}
+                    placeholder="e.g. a 4 × 4 piece, 1 large shirt, 45 × 35 cm, 1.5 yards..."
+                    className="w-full bg-paper border border-navy/20 rounded-xl px-3.5 py-2 text-xs font-mono text-navy focus:outline-none focus:ring-2 focus:ring-navy/30"
+                  />
+                  <span className="text-[10px] text-charcoal-muted mt-1 block">
+                    Type colloquial expressions like &ldquo;a 4 × 4 piece&rdquo; or specify length and width numbers below.
+                  </span>
+                </div>
+
+                {/* Exact numbers */}
+                <div className="grid grid-cols-2 gap-3 pt-1">
                   <div>
                     <span className="text-[11px] text-charcoal-muted block mb-1">Width</span>
                     <div className="relative">
                       <input
-                        id="fabric-width-input"
                         type="number"
-                        min="2"
+                        min="1"
                         max={maxDimension}
                         value={width}
                         onChange={(e) => {
@@ -706,22 +849,24 @@ export const FabricStudio: React.FC<FabricStudioProps> = ({
                           onFabricChange({
                             ...currentFabric,
                             dimensions: { ...currentFabric.dimensions, width: val },
+                            dimensionsText: `${val} × ${height} ${unit}`,
                           });
+                          setDimensionsInputText(`${val} × ${height} ${unit}`);
                         }}
-                        className={`w-full bg-paper-50 border rounded-xl px-3.5 py-2.5 text-sm font-mono text-charcoal focus:outline-none focus:ring-2 ${
+                        className={`w-full bg-paper border rounded-xl px-3.5 py-2 text-xs font-mono text-charcoal focus:outline-none focus:ring-2 ${
                           isWidthValid ? 'border-navy/20 focus:ring-navy/30' : 'border-coral focus:ring-coral/30'
                         }`}
                       />
-                      <span className="absolute right-3 top-2.5 text-xs text-charcoal-muted font-mono">{unit}</span>
+                      <span className="absolute right-3 top-2 text-xs text-charcoal-muted font-mono">{unit}</span>
                     </div>
                   </div>
+
                   <div>
                     <span className="text-[11px] text-charcoal-muted block mb-1">Length / Height</span>
                     <div className="relative">
                       <input
-                        id="fabric-height-input"
                         type="number"
-                        min="2"
+                        min="1"
                         max={maxDimension}
                         value={height}
                         onChange={(e) => {
@@ -729,118 +874,270 @@ export const FabricStudio: React.FC<FabricStudioProps> = ({
                           onFabricChange({
                             ...currentFabric,
                             dimensions: { ...currentFabric.dimensions, height: val },
+                            dimensionsText: `${width} × ${val} ${unit}`,
                           });
+                          setDimensionsInputText(`${width} × ${val} ${unit}`);
                         }}
-                        className={`w-full bg-paper-50 border rounded-xl px-3.5 py-2.5 text-sm font-mono text-charcoal focus:outline-none focus:ring-2 ${
+                        className={`w-full bg-paper border rounded-xl px-3.5 py-2 text-xs font-mono text-charcoal focus:outline-none focus:ring-2 ${
                           isHeightValid ? 'border-navy/20 focus:ring-navy/30' : 'border-coral focus:ring-coral/30'
                         }`}
                       />
-                      <span className="absolute right-3 top-2.5 text-xs text-charcoal-muted font-mono">{unit}</span>
+                      <span className="absolute right-3 top-2 text-xs text-charcoal-muted font-mono">{unit}</span>
                     </div>
                   </div>
                 </div>
 
-                {/* Validation error display */}
                 {!isDimensionsValid && (
-                  <p className="text-[11px] text-coral mt-1.5 flex items-center gap-1 animate-fadeIn">
+                  <p className="text-[11px] text-coral mt-1 flex items-center gap-1 animate-fadeIn">
                     <AlertCircle className="w-3.5 h-3.5" />
                     <span>{getDimensionErrorMessage()}</span>
                   </p>
                 )}
               </div>
 
-              {/* Fabric Condition Selector */}
-              <div>
-                <label className="text-xs font-bold text-navy uppercase tracking-wider block mb-2">
-                  Remnant Condition
-                </label>
-                <div className="grid grid-cols-2 gap-2">
-                  {(['Crisp Remnant', 'Gently Washed', 'Vintage Worn', 'Frayed Scrap'] as const).map((cond) => (
+              {/* 3. Dominant Color & Chromatic Palette */}
+              <div className="space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <label htmlFor="fabric-color-input" className="text-xs font-bold text-navy uppercase tracking-wider flex items-center gap-1.5 font-mono">
+                    <Palette className="w-3.5 h-3.5 text-coral" />
+                    Color & Palette
+                  </label>
+                  <span className="text-[10px] text-charcoal-muted font-mono">{currentFabric.dominantColor || 'Default'}</span>
+                </div>
+
+                <input
+                  id="fabric-color-input"
+                  type="text"
+                  value={currentFabric.dominantColor || ''}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    onFabricChange({
+                      ...currentFabric,
+                      dominantColor: val,
+                      userConfirmedColor: true,
+                      name: `${val} ${currentFabric.clothingType || currentFabric.material || 'Piece'}`.trim(),
+                    });
+                  }}
+                  placeholder="e.g. Deep Indigo Blue, Sage Green, Terracotta Red..."
+                  className="w-full bg-paper border border-navy/20 rounded-xl px-3.5 py-2 text-xs font-medium text-navy focus:outline-none focus:ring-2 focus:ring-navy/30"
+                />
+
+                {/* Quick Color Swatches */}
+                <div className="flex flex-wrap items-center gap-2 pt-1">
+                  {COLOR_PRESETS.map((preset) => (
                     <button
-                      key={cond}
+                      key={preset.name}
                       type="button"
                       onClick={() => {
                         onFabricChange({
                           ...currentFabric,
-                          condition: cond,
+                          dominantColor: preset.name,
+                          colorFamily: preset.family,
+                          userConfirmedColor: true,
+                          colorPalette: [{ name: preset.name, hex: preset.hex }],
+                          name: `${preset.name} ${currentFabric.clothingType || currentFabric.material || 'Piece'}`.trim(),
                         });
                       }}
-                      className={`px-3 py-2 rounded-xl text-xs font-medium border text-left transition-colors flex items-center justify-between focus:outline-none focus-visible:ring-1 focus-visible:ring-denim ${
-                        condition === cond
-                          ? 'border-navy bg-navy text-paper font-semibold'
-                          : 'border-navy/20 bg-paper-50 text-charcoal hover:border-navy/40'
-                      }`}
+                      className="group flex items-center gap-1.5 px-2 py-1 rounded-lg border border-navy/15 bg-paper hover:border-coral transition-all"
+                      title={preset.name}
                     >
-                      <span>{cond}</span>
-                      {condition === cond && <Check className="w-3.5 h-3.5 text-coral" />}
+                      <span className="w-3.5 h-3.5 rounded-full border border-navy/20 shadow-2xs" style={{ backgroundColor: preset.hex }} />
+                      <span className="text-[10px] font-mono text-charcoal">{preset.name}</span>
                     </button>
                   ))}
                 </div>
               </div>
 
-              {/* Intended Project Goal (Affects Blueprint Gallery Category) */}
-              <div>
-                <label htmlFor="intended-category-select" className="text-xs font-bold text-navy uppercase tracking-wider block mb-2">
-                  Intended Project Goal <span className="text-charcoal-muted font-normal lowercase">(syncs catalog filter)</span>
+              {/* 4. Condition Selector */}
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-navy uppercase tracking-wider block font-mono">
+                  Remnant or Garment Condition
                 </label>
-                <select
-                  id="intended-category-select"
-                  value={selectedCategory}
-                  onChange={(e) => onCategoryChange(e.target.value)}
-                  className="w-full bg-paper-50 border border-navy/20 rounded-xl px-3.5 py-2.5 text-xs font-medium text-charcoal focus:outline-none focus:ring-2 focus:ring-navy/30"
-                >
-                  <option value="All">All Categories (Explore Everything)</option>
-                  <option value="Apparel & Garments">Jackets, Vests & Studio Garments</option>
-                  <option value="Bags & Carry">Bags, Sleeves & Market Totes</option>
-                  <option value="Accessories">Small Hair & Pocket Accessories</option>
-                  <option value="Home Goods">Cushions, Mats & Table Goods</option>
-                  <option value="Art & Living">Wall Tapestry & Textile Artwork</option>
-                </select>
-              </div>
-
-              {/* Color Swatch Preview from Fabric */}
-              <div>
-                <span className="text-[11px] font-bold text-navy uppercase tracking-wider block mb-1.5">
-                  Atelier Chromatic Tones <span className="text-charcoal-muted font-normal lowercase">(illustrative)</span>
-                </span>
-                <div className="flex items-center gap-2">
-                  {currentFabric.colorPalette.map((col, idx) => (
-                    <div key={idx} className="flex-1 group relative">
-                      <div 
-                        className="h-7 rounded-lg border border-navy/15 shadow-2xs cursor-pointer transition-transform group-hover:scale-105" 
-                        style={{ backgroundColor: col.hex }}
-                        title={`${col.name} (${col.hex})`}
-                      />
-                      <span className="text-[9px] font-mono block text-center mt-1 text-charcoal-muted truncate">
-                        {col.name}
-                      </span>
-                    </div>
-                  ))}
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {CONDITION_OPTIONS.map((opt) => {
+                    const isSelected = condition === opt.label;
+                    return (
+                      <button
+                        key={opt.label}
+                        type="button"
+                        onClick={() => {
+                          onFabricChange({
+                            ...currentFabric,
+                            condition: opt.label,
+                          });
+                        }}
+                        className={`p-2.5 rounded-xl text-left border transition-all ${
+                          isSelected
+                            ? 'border-navy bg-navy text-paper shadow-xs'
+                            : 'border-navy/15 bg-paper text-charcoal hover:border-navy/30'
+                        }`}
+                      >
+                        <span className="font-serif text-xs font-bold block truncate">{opt.label}</span>
+                        <span className={`text-[10px] block mt-0.5 truncate ${isSelected ? 'text-paper/80' : 'text-charcoal-muted'}`}>
+                          {opt.desc}
+                        </span>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
-              {/* Big Discover Possibilities CTA */}
+              {/* 5. Texture & Surface Pattern */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Texture */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-navy uppercase tracking-wider block font-mono">
+                    Texture & Drape
+                  </label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {TEXTURE_OPTIONS.map((tex) => {
+                      const isSelected = (currentFabric.texture || '').includes(tex);
+                      return (
+                        <button
+                          key={tex}
+                          type="button"
+                          onClick={() => {
+                            onFabricChange({
+                              ...currentFabric,
+                              texture: tex,
+                              structuralBody: tex,
+                            });
+                          }}
+                          className={`px-2.5 py-1 rounded-lg text-[10px] font-mono transition-all ${
+                            isSelected
+                              ? 'bg-navy text-paper font-bold'
+                              : 'bg-paper border border-navy/15 text-charcoal hover:border-coral'
+                          }`}
+                        >
+                          {tex}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Pattern */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-navy uppercase tracking-wider block font-mono">
+                    Surface Pattern
+                  </label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {PATTERN_OPTIONS.map((pat) => {
+                      const isSelected = (currentFabric.pattern || '').includes(pat.split(' ')[0]);
+                      return (
+                        <button
+                          key={pat}
+                          type="button"
+                          onClick={() => {
+                            onFabricChange({
+                              ...currentFabric,
+                              pattern: pat,
+                              weave: pat,
+                            });
+                          }}
+                          className={`px-2.5 py-1 rounded-lg text-[10px] font-mono transition-all ${
+                            isSelected
+                              ? 'bg-navy text-paper font-bold'
+                              : 'bg-paper border border-navy/15 text-charcoal hover:border-coral'
+                          }`}
+                        >
+                          {pat}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+
+              {/* 6. Maker Notes & Special Details */}
+              <div className="space-y-2">
+                <label htmlFor="maker-notes-input" className="text-xs font-bold text-navy uppercase tracking-wider flex items-center gap-1.5 font-mono">
+                  <FileText className="w-3.5 h-3.5 text-coral" />
+                  Notes & Details <span className="text-charcoal-muted font-normal lowercase">(hardware, flaws, preferences)</span>
+                </label>
+                <textarea
+                  id="maker-notes-input"
+                  rows={2}
+                  value={currentFabric.notes || ''}
+                  onChange={(e) => {
+                    onFabricChange({
+                      ...currentFabric,
+                      notes: e.target.value,
+                    });
+                  }}
+                  placeholder="e.g. Has intact copper rivets and back pockets to preserve; looking for quick weekend gift ideas; cut around frayed hem..."
+                  className="w-full bg-paper border border-navy/20 rounded-xl p-3 text-xs text-charcoal placeholder:text-charcoal-muted/60 focus:outline-none focus:ring-2 focus:ring-navy/30"
+                />
+              </div>
+
+              {/* 7. Category Filter Sync */}
+              <div className="flex items-center justify-between gap-4 pt-1">
+                <div className="flex-1">
+                  <label htmlFor="studio-category-select" className="text-xs font-bold text-navy uppercase tracking-wider block mb-1 font-mono">
+                    Intended Project Category
+                  </label>
+                  <select
+                    id="studio-category-select"
+                    value={selectedCategory}
+                    onChange={(e) => onCategoryChange(e.target.value)}
+                    className="w-full bg-paper border border-navy/20 rounded-xl px-3.5 py-2 text-xs font-medium text-charcoal focus:outline-none focus:ring-2 focus:ring-navy/30"
+                  >
+                    <option value="All">All Categories (Explore Everything)</option>
+                    <option value="Apparel & Garments">Apparel, Jackets & Studio Vests</option>
+                    <option value="Bags & Carry">Bags, Crossbody Rigs & Market Totes</option>
+                    <option value="Accessories">Accessories, Collars & Pocket Goods</option>
+                    <option value="Home Goods">Home Goods, Cushions & Table Goods</option>
+                    <option value="Art & Living">Wall Tapestry & Textile Artwork</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Multi-Step Loading State Overlay during Analysis */}
+              {isAnalyzing && (
+                <div className="p-4 rounded-2xl bg-navy/5 border border-navy/20 space-y-2 animate-fadeIn">
+                  <div className="flex items-center gap-2 text-xs font-bold text-navy font-mono">
+                    <Sparkles className="w-4 h-4 text-coral animate-spin" />
+                    <span>Analyzing your {currentFabric.clothingType || currentFabric.material}...</span>
+                  </div>
+                  <div className="space-y-1 text-[11px] text-charcoal-muted pl-6 font-mono">
+                    <p className="flex items-center gap-1.5 text-navy font-medium">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                      Evaluating 2D cutting geometry ({width}×{height} {unit})
+                    </p>
+                    <p className="flex items-center gap-1.5 text-navy font-medium">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping"></span>
+                      Scanning live sustainable fashion trend research
+                    </p>
+                    <p className="flex items-center gap-1.5 text-charcoal-muted">
+                      <span className="w-1.5 h-1.5 rounded-full bg-navy/40"></span>
+                      Synthesizing 5 distinct zero-waste cutting blueprints
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Big Discover Possibilities / Match Blueprints CTA */}
               <div className="pt-2">
                 <button
                   type="button"
                   onClick={handleTriggerAnalysis}
                   disabled={isAnalyzing || isInspectingImage || !isDimensionsValid}
-                  className="w-full relative group overflow-hidden py-4 px-6 rounded-2xl bg-navy text-paper text-base font-semibold shadow-warm hover:bg-navy-700 hover:shadow-warm-lg active:scale-98 transition-all duration-300 flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-denim"
+                  className="w-full relative group overflow-hidden py-4 px-6 rounded-2xl bg-navy text-paper text-base font-semibold shadow-warm hover:bg-navy-700 hover:shadow-warm-lg active:scale-98 transition-all duration-300 flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-denim cursor-pointer"
                 >
                   <Sparkles className="w-5 h-5 text-coral animate-spin" style={{ animationDuration: '4s' }} />
                   <span>
                     {isAnalyzing
-                      ? 'Simulating Zero-Waste Patterns...'
+                      ? 'Simulating Zero-Waste Blueprints...'
                       : isInspectingImage
                       ? 'AI Vision Inspecting Swatch...'
-                      : 'Discover Possibilities'}
+                      : 'Discover Possibilities & Match Blueprints'}
                   </span>
                   <span className="absolute inset-0 -translate-x-full group-hover:translate-x-full bg-gradient-to-r from-transparent via-white/10 to-transparent transition-transform duration-1000 ease-in-out pointer-events-none" />
                 </button>
 
                 <p className="text-[11px] text-charcoal-muted text-center mt-2.5 flex items-center justify-center gap-1">
                   <HelpCircle className="w-3.5 h-3.5 text-denim" />
-                  <span>Interactive demonstration: tests cutting geometry with your dimensions</span>
+                  <span>Calculates cutting geometry specifically for your submitted dimensions & fabric</span>
                 </p>
               </div>
 

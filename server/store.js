@@ -1,12 +1,16 @@
 import fs from 'fs';
 import path from 'path';
+import os from 'os';
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const isServerless = process.env.VERCEL === '1' || Boolean(process.env.VERCEL_ENV) || Boolean(process.env.AWS_LAMBDA_FUNCTION_NAME);
+const isTestEnv = process.env.NODE_ENV === 'test' || Boolean(process.argv[1] && process.argv[1].includes('.test.'));
 const BASE_DATA_DIR = path.join(__dirname, '..', 'data');
-const DATA_DIR = isServerless ? '/tmp/data' : BASE_DATA_DIR;
+const DATA_DIR = isTestEnv 
+  ? path.join(os.tmpdir(), 're_style_test_store') 
+  : (isServerless ? '/tmp/data' : (process.env.DATA_DIR || BASE_DATA_DIR));
 const DB_FILE = path.join(DATA_DIR, 're_style_store.json');
 const SEED_FILE = path.join(BASE_DATA_DIR, 're_style_store.json');
 
@@ -114,6 +118,7 @@ const DEFAULT_SEED_FABRICS = [
     name: 'Hand-Block Printed Artisan Cotton',
     imageUrl: 'https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=800&q=80',
     material: 'cotton',
+    clothingType: 'Printed Cotton Scrap',
     materialLabel: 'Hand-Spun Khadi Cotton',
     dominantColor: 'Warm Ecru',
     secondaryColors: ['Ink Navy', 'Warm Coral', 'Soft Slate'],
@@ -136,6 +141,246 @@ const DEFAULT_SEED_FABRICS = [
     parentFabricId: null,
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 12).toISOString(),
     updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 12).toISOString()
+  },
+  {
+    id: 'fabric-thrifted-jeans',
+    userId: 'default-maker',
+    name: "Thrifted Levi's 501 Straight Jeans",
+    imageUrl: 'https://images.unsplash.com/photo-1542272604-780c96856592?auto=format&fit=crop&w=800&q=80',
+    material: 'denim',
+    clothingType: 'Denim Jeans',
+    materialLabel: '100% Heavyweight Cotton Denim',
+    dominantColor: 'Washed Stone Indigo',
+    secondaryColors: ['Stone Fade', 'Brass Rivet', 'Deep Indigo'],
+    pattern: 'Distressed Twill with Whiskering',
+    dimensions: { length: 85, width: 35, unit: 'cm' },
+    shape: 'rectangular',
+    totalQuantity: 1,
+    reservedQuantity: 0,
+    consumedQuantity: 0,
+    availableQuantity: 1,
+    condition: 'worn',
+    conditionLabel: 'Distressed / Torn',
+    stretch: 'none',
+    thickness: 'heavy',
+    weightGsm: 410,
+    purchaseCost: 7.0,
+    storageLocation: 'Upcycling Rack - Denim Garments',
+    notes: 'Deconstructed denim trousers ready for modular tactical rigs, tool pouches, and boro totes.',
+    source: 'thrifted',
+    parentFabricId: null,
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 10).toISOString(),
+    updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 10).toISOString()
+  },
+  {
+    id: 'fabric-linen-shirt',
+    userId: 'default-maker',
+    name: 'Oversized Slub Linen Button-Down Shirt',
+    imageUrl: 'https://images.unsplash.com/photo-1598033129183-c4f50c736f10?auto=format&fit=crop&w=800&q=80',
+    material: 'linen',
+    clothingType: 'Button-Down Shirt',
+    materialLabel: '100% Pure Flax Linen',
+    dominantColor: 'Bone White / Oatmeal',
+    secondaryColors: ['Mother of Pearl', 'Warm Flax'],
+    pattern: 'Natural Slub Texture',
+    dimensions: { length: 75, width: 55, unit: 'cm' },
+    shape: 'rectangular',
+    totalQuantity: 1,
+    reservedQuantity: 0,
+    consumedQuantity: 0,
+    availableQuantity: 1,
+    condition: 'good',
+    conditionLabel: 'Vintage Worn',
+    stretch: 'none',
+    thickness: 'light',
+    weightGsm: 160,
+    purchaseCost: 9.0,
+    storageLocation: 'Wardrobe Rail - Pre-loved Garments',
+    notes: 'Generous front & back panels ideal for ascot collars, summer aprons, or pleated scarves.',
+    source: 'thrifted',
+    parentFabricId: null,
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 8).toISOString(),
+    updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 8).toISOString()
+  },
+  {
+    id: 'fabric-sage-lace',
+    userId: 'default-maker',
+    name: 'Antique French Floral Sage Lace Remnant',
+    imageUrl: 'https://images.unsplash.com/photo-1558769132-cb1aea458c5e?auto=format&fit=crop&w=800&q=80',
+    material: 'lace',
+    clothingType: 'Lace Remnant',
+    materialLabel: 'Mercerized Cotton & Rayon Lace',
+    dominantColor: 'Sage Green',
+    secondaryColors: ['Muted Moss', 'Pale Mint'],
+    pattern: 'Floral Botanical Openwork',
+    dimensions: { length: 45, width: 30, unit: 'cm' },
+    shape: 'rectangular',
+    totalQuantity: 1,
+    reservedQuantity: 0,
+    consumedQuantity: 0,
+    availableQuantity: 1,
+    condition: 'new',
+    conditionLabel: 'Crisp Remnant',
+    stretch: 'low',
+    thickness: 'light',
+    weightGsm: 130,
+    purchaseCost: 11.5,
+    storageLocation: 'Delicate Goods Box - Lace & Silk',
+    notes: 'Exquisite openwork lace for heirloom statement collars, lavender sachets, and lingerie accents.',
+    source: 'purchased',
+    parentFabricId: null,
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 6).toISOString(),
+    updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 6).toISOString()
+  },
+  {
+    id: 'fabric-kyoto-silk',
+    userId: 'default-maker',
+    name: 'Kyoto Vintage Mulberry Silk Kimono Scrap',
+    imageUrl: 'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?auto=format&fit=crop&w=800&q=80',
+    material: 'silk',
+    clothingType: 'Silk Kimono Scrap',
+    materialLabel: '100% Pure Mulberry Silk',
+    dominantColor: 'Royal Violet & Lilac',
+    secondaryColors: ['Imperial Violet', 'Gold Leaf'],
+    pattern: 'Traditional Botanical Damask',
+    dimensions: { length: 45, width: 22, unit: 'cm' },
+    shape: 'rectangular',
+    totalQuantity: 1,
+    reservedQuantity: 0,
+    consumedQuantity: 0,
+    availableQuantity: 1,
+    condition: 'worn',
+    conditionLabel: 'Vintage Worn',
+    stretch: 'none',
+    thickness: 'light',
+    weightGsm: 110,
+    purchaseCost: 14.0,
+    storageLocation: 'Silk Envelope - Studio Drawer 1',
+    notes: 'Precious ceremonial silk offcut suited for origami ascots, cloud scrunchies, and evening pouches.',
+    source: 'scrap',
+    parentFabricId: null,
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 5).toISOString(),
+    updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 5).toISOString()
+  },
+  {
+    id: 'fabric-wool-tweed',
+    userId: 'default-maker',
+    name: 'Scottish Shetland Wool Tweed Remnant',
+    imageUrl: 'https://images.unsplash.com/photo-1579783902614-a3fb3927b675?auto=format&fit=crop&w=800&q=80',
+    material: 'wool',
+    clothingType: 'Wool Coat Scrap',
+    materialLabel: '100% Pure Shetland Wool',
+    dominantColor: 'Charcoal & Moss Green',
+    secondaryColors: ['Heather Moss', 'Oatmeal Tweed'],
+    pattern: 'Micro Houndstooth Weave',
+    dimensions: { length: 50, width: 40, unit: 'cm' },
+    shape: 'rectangular',
+    totalQuantity: 1,
+    reservedQuantity: 0,
+    consumedQuantity: 0,
+    availableQuantity: 1,
+    condition: 'new',
+    conditionLabel: 'Crisp Remnant',
+    stretch: 'none',
+    thickness: 'heavy',
+    weightGsm: 380,
+    purchaseCost: 16.0,
+    storageLocation: 'Wool & Tweed Chest - Studio Bench',
+    notes: 'Dense structured wool ideal for tailored waistcoats, valet trays, and quilted hot pads.',
+    source: 'purchased',
+    parentFabricId: null,
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 4).toISOString(),
+    updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 4).toISOString()
+  },
+  {
+    id: 'fabric-gold-flax',
+    userId: 'default-maker',
+    name: 'Golden Ochre Heavy Slub Flax Canvas',
+    imageUrl: 'https://images.unsplash.com/photo-1594938298603-c8148c4dae35?auto=format&fit=crop&w=800&q=80',
+    material: 'linen',
+    clothingType: 'Heavy Canvas Scrap',
+    materialLabel: '100% Rustic Slub Linen & Cotton',
+    dominantColor: 'Golden Ochre',
+    secondaryColors: ['Warm Terracotta', 'Raw Flax'],
+    pattern: 'Heavy Crosshatch Canvas',
+    dimensions: { length: 55, width: 45, unit: 'cm' },
+    shape: 'rectangular',
+    totalQuantity: 1,
+    reservedQuantity: 0,
+    consumedQuantity: 0,
+    availableQuantity: 1,
+    condition: 'new',
+    conditionLabel: 'Crisp Remnant',
+    stretch: 'none',
+    thickness: 'heavy',
+    weightGsm: 320,
+    purchaseCost: 13.0,
+    storageLocation: 'Canvas Bin 2',
+    notes: 'Vibrant sun-drenched canvas suited for durable market carryalls, studio aprons, and cushion covers.',
+    source: 'purchased',
+    parentFabricId: null,
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 3).toISOString(),
+    updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 3).toISOString()
+  },
+  {
+    id: 'fabric-olive-ripstop',
+    userId: 'default-maker',
+    name: 'Military Surplus Olive Ripstop Cotton',
+    imageUrl: 'https://images.unsplash.com/photo-1508746829417-e6f548d8d6ed?auto=format&fit=crop&w=800&q=80',
+    material: 'cotton',
+    clothingType: 'Utility Jacket / Cargo Trousers',
+    materialLabel: '100% Reinforced Combat Cotton',
+    dominantColor: 'Olive Drab Green',
+    secondaryColors: ['Field Sage', 'Black Oxide'],
+    pattern: 'Cross-Hatch Grid Ripstop',
+    dimensions: { length: 65, width: 42, unit: 'cm' },
+    shape: 'rectangular',
+    totalQuantity: 1,
+    reservedQuantity: 0,
+    consumedQuantity: 0,
+    availableQuantity: 1,
+    condition: 'good',
+    conditionLabel: 'Gently Washed',
+    stretch: 'none',
+    thickness: 'medium',
+    weightGsm: 240,
+    purchaseCost: 8.0,
+    storageLocation: 'Utility Gear Box',
+    notes: 'Tactical durability engineered for modular utility rigs, tech cable wraps, and bucket hats.',
+    source: 'thrifted',
+    parentFabricId: null,
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
+    updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString()
+  },
+  {
+    id: 'fabric-waffle-knit',
+    userId: 'default-maker',
+    name: 'Soft Heather Oatmeal Waffle Knit Offcut',
+    imageUrl: 'https://images.unsplash.com/photo-1584917865442-de89df76afd3?auto=format&fit=crop&w=800&q=80',
+    material: 'cotton',
+    clothingType: 'Waffle Knit Sweater',
+    materialLabel: 'Organic Combed Cotton (100%)',
+    dominantColor: 'Heather Oatmeal',
+    secondaryColors: ['Cream Wool', 'Warm Charcoal'],
+    pattern: 'Honeycomb Waffle Grid',
+    dimensions: { length: 42, width: 35, unit: 'cm' },
+    shape: 'rectangular',
+    totalQuantity: 1,
+    reservedQuantity: 0,
+    consumedQuantity: 0,
+    availableQuantity: 1,
+    condition: 'new',
+    conditionLabel: 'Crisp Remnant',
+    stretch: 'medium',
+    thickness: 'medium',
+    weightGsm: 260,
+    purchaseCost: 6.5,
+    storageLocation: 'Knit & Fleece Basket',
+    notes: 'Cozy textured scrap suited for thermal coasters, pouch linings, and quilted coffee warmers.',
+    source: 'leftover',
+    parentFabricId: null,
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 1).toISOString(),
+    updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 1).toISOString()
   }
 ];
 
@@ -162,6 +407,18 @@ class ReStyleStore {
         if (!Array.isArray(this.data.sessions)) this.data.sessions = [];
         if (!Array.isArray(this.data.movements)) this.data.movements = [];
         if (!Array.isArray(this.data.shares)) this.data.shares = [];
+
+        // Ensure default seed fabrics exist so makers always have a rich library to choose from
+        let addedNewSeed = false;
+        for (const seed of DEFAULT_SEED_FABRICS) {
+          if (!this.data.fabrics.some(f => f.id === seed.id)) {
+            this.data.fabrics.push({ ...seed });
+            addedNewSeed = true;
+          }
+        }
+        if (addedNewSeed) {
+          this.persist();
+        }
       } catch (err) {
         console.error('[Store] Failed to read database file, initializing defaults:', err.message);
         this.data = {
@@ -181,17 +438,21 @@ class ReStyleStore {
   }
 
   persist() {
+    let tempFile = null;
     try {
       if (!fs.existsSync(DATA_DIR)) {
         try {
           fs.mkdirSync(DATA_DIR, { recursive: true });
         } catch (_) {}
       }
-      const tempFile = `${DB_FILE}.tmp.${Date.now()}.${Math.random().toString(36).substring(2, 6)}`;
+      tempFile = `${DB_FILE}.tmp.${Date.now()}.${Math.random().toString(36).substring(2, 6)}`;
       fs.writeFileSync(tempFile, JSON.stringify(this.data, null, 2), 'utf-8');
       fs.renameSync(tempFile, DB_FILE);
     } catch (err) {
       console.warn('[Store] Persistence notice:', err.message);
+      if (tempFile && fs.existsSync(tempFile)) {
+        try { fs.unlinkSync(tempFile); } catch (_) {}
+      }
     }
   }
 
@@ -526,10 +787,10 @@ class ReStyleStore {
       fabric.reservedQuantity -= qty;
     } else {
       const leftover = qty - fabric.reservedQuantity;
-      fabric.reservedQuantity = 0;
       if (fabric.availableQuantity < leftover) {
         throw new Error(`Insufficient fabric remaining to consume ${qty}. Available: ${fabric.availableQuantity}`);
       }
+      fabric.reservedQuantity = 0;
     }
 
     fabric.consumedQuantity += qty;
@@ -699,6 +960,12 @@ class ReStyleStore {
       existing.isFavourite = payload.isFavourite !== undefined ? payload.isFavourite : existing.isFavourite;
       existing.updatedAt = now;
       if (payload.status) existing.status = payload.status;
+      if (Array.isArray(payload.steps)) existing.steps = payload.steps;
+      if (payload.cuttingPlan) existing.cuttingPlan = payload.cuttingPlan;
+      if (Array.isArray(payload.materialsNeeded)) existing.materialsNeeded = payload.materialsNeeded;
+      if (Array.isArray(payload.toolsNeeded)) existing.toolsNeeded = payload.toolsNeeded;
+      if (payload.suitabilityReason) existing.suitabilityReason = payload.suitabilityReason;
+      if (payload.fabricAllocated) existing.fabricAllocated = payload.fabricAllocated;
       this.persist();
       return this.getProjectById(existing.id, userId);
     }
@@ -1021,11 +1288,11 @@ class ReStyleStore {
     };
   }
 
-  revokeShareToken(projectId, userId = 'default-maker') {
+  revokeShareToken(projectIdOrToken, userId = 'default-maker') {
     let count = 0;
     const now = new Date().toISOString();
     for (const share of this.data.shares) {
-      if (share.projectId === projectId && share.userId === userId && !share.isRevoked) {
+      if ((share.projectId === projectIdOrToken || share.token === projectIdOrToken) && (!userId || share.userId === userId || userId === 'default-maker') && !share.isRevoked) {
         share.isRevoked = true;
         share.revokedAt = now;
         count++;

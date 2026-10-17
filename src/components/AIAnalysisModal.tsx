@@ -10,7 +10,8 @@ import {
   ExternalLink,
   Sparkles,
   TrendingUp,
-  Loader2
+  Loader2,
+  AlertTriangle
 } from 'lucide-react';
 import type { FabricSample } from '../data/mockFabrics';
 import { UPCYCLING_IDEAS } from '../data/upcyclingIdeas';
@@ -24,6 +25,7 @@ interface AIAnalysisModalProps {
   aiDesigns?: DesignConcept[];
   liveTrends?: Array<{ title: string; snippet: string; url: string }>;
   isAiLoading?: boolean;
+  aiErrorMessage?: string | null;
 }
 
 export const AIAnalysisModal: React.FC<AIAnalysisModalProps> = ({
@@ -34,6 +36,7 @@ export const AIAnalysisModal: React.FC<AIAnalysisModalProps> = ({
   aiDesigns,
   liveTrends,
   isAiLoading,
+  aiErrorMessage,
 }) => {
   const [scanStepIndex, setScanStepIndex] = useState(0);
   const isScanning = Boolean(isAiLoading);
@@ -154,7 +157,28 @@ export const AIAnalysisModal: React.FC<AIAnalysisModalProps> = ({
             <div className="space-y-6 animate-fadeIn">
               
               {/* Top Banner */}
-              {aiDesigns && aiDesigns.length > 0 && !isAiLoading ? (
+              {aiErrorMessage && (!aiDesigns || aiDesigns.length === 0) ? (
+                <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-rose-700 text-white flex items-center justify-center flex-shrink-0">
+                      <AlertTriangle className="w-5 h-5 text-rose-200" />
+                    </div>
+                    <div>
+                      <h4 className="font-serif text-base font-bold text-rose-950">
+                        Physical Constraint Notice
+                      </h4>
+                      <p className="text-xs text-rose-900/90">
+                        {aiErrorMessage}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 self-start sm:self-auto">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-mono font-bold bg-rose-100 text-rose-800 border border-rose-300 shadow-2xs">
+                      Preserving Constraints
+                    </span>
+                  </div>
+                </div>
+              ) : aiDesigns && aiDesigns.length > 0 && !isAiLoading ? (
                 <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-xl bg-emerald-700 text-white flex items-center justify-center flex-shrink-0">

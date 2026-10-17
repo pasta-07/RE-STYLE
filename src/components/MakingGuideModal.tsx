@@ -26,6 +26,7 @@ import {
   createFabric 
 } from '../api/reStyleApi';
 import { evaluateFabricFeasibility, type CuttingLayoutResult, BLUEPRINT_PIECE_REGISTRY } from '../utils/fabricFeasibility';
+import { generateProjectPreview } from '../api/generateDesigns';
 
 interface MakingGuideModalProps {
   idea: UpcycleIdea | any | null;
@@ -46,12 +47,63 @@ export const MakingGuideModal: React.FC<MakingGuideModalProps> = ({
   const [isSaved, setIsSaved] = useState(false);
   const [isExportingPdf, setIsExportingPdf] = useState(false);
 
+  // Photo-conditioned preview states
+  const [previewImageUrl, setPreviewImageUrl] = useState<string>(() => {
+    return idea?.imageUrl && !idea.imageUrl.includes('pollinations.ai')
+      ? idea.imageUrl
+      : (idea?.fallbackImageUrl || '/blueprints/jute-patchwork-tote.jpg');
+  });
+  const [isPhotoConditioned, setIsPhotoConditioned] = useState<boolean>(Boolean(idea?.isPhotoConditioned));
+  const [isGeneratingPreview, setIsGeneratingPreview] = useState(false);
+  const [previewError, setPreviewError] = useState<string | null>(null);
+  const [previewRequiresSetup, setPreviewRequiresSetup] = useState(false);
+
   // Leftover modal on finishing
   const [showLeftoverModal, setShowLeftoverModal] = useState(false);
   const [leftoverLength, setLeftoverLength] = useState<number | ''>(20);
   const [leftoverWidth, setLeftoverWidth] = useState<number | ''>(15);
   const [leftoverPieces, setLeftoverPieces] = useState(1);
   const [leftoverNotes, setLeftoverNotes] = useState('Scraps remaining from cutting layout');
+
+  const handleGeneratePreview = async () => {
+    if (!fabric?.imageUrl) {
+      alert('Please upload or select a fabric photo first.');
+      return;
+    }
+    setIsGeneratingPreview(true);
+    setPreviewError(null);
+    setPreviewRequiresSetup(false);
+    try {
+      const res = await generateProjectPreview({
+        fabricImage: fabric.imageUrl,
+        fabricColor: fabric.dominantColor || 'Natural',
+        fabricMaterial: fabric.material || 'Cotton',
+        fabricDimensions: fabric.dimensions ? `${fabric.dimensions.width}×${fabric.dimensions.height} ${fabric.dimensions.unit}` : undefined,
+        projectTitle: idea.title,
+        projectDescription: idea.description || idea.subtitle || '',
+        category: idea.category,
+      });
+
+      if (res.success && res.imageUrl) {
+        setPreviewImageUrl(res.imageUrl);
+        setIsPhotoConditioned(true);
+        if (idea) {
+          idea.imageUrl = res.imageUrl;
+          idea.isPhotoConditioned = true;
+          idea.isGenericReference = false;
+        }
+      } else if (res.requiresSetup) {
+        setPreviewRequiresSetup(true);
+        setPreviewError(res.message || 'Image editing provider setup required (STABILITY_API_KEY or BFL_API_KEY).');
+      } else {
+        setPreviewError(res.error || 'Failed to generate fabric-conditioned preview.');
+      }
+    } catch (err: any) {
+      setPreviewError(err.message || 'Preview generation failed.');
+    } finally {
+      setIsGeneratingPreview(false);
+    }
+  };
 
   useEffect(() => {
     if (!idea) return;
@@ -134,8 +186,8 @@ export const MakingGuideModal: React.FC<MakingGuideModalProps> = ({
         imageUrl: idea.imageUrl || fabric.imageUrl,
         fabricId: fabric.id?.startsWith('fabric-') ? fabric.id : null,
         fabricAllocated: {
-          length: fabric.dimensions?.length || fabric.dimensions?.width || 45,
-          width: fabric.dimensions?.width || fabric.dimensions?.height || 35,
+          length: fabric.dimensions?.length ?? fabric.dimensions?.height ?? 45,
+          width: fabric.dimensions?.width ?? 35,
           unit: fabric.dimensions?.unit || 'cm'
         },
         status: 'planned',
@@ -307,43 +359,170 @@ export const MakingGuideModal: React.FC<MakingGuideModalProps> = ({
             </div>
 
             {/* Fabric Remnant & Finished Blueprint Companion Chips */}
-            <div className="flex items-center gap-2.5 p-3 rounded-2xl bg-surface border border-navy/10 sm:max-w-sm flex-shrink-0 shadow-2xs">
-              <div className="relative flex-shrink-0">
+            <div className="flex flex-col gap-2 p-3 rounded-2xl bg-surface border border-navy/10 sm:max-w-sm flex-shrink-0 shadow-2xs">
+              <div className="flex items-center gap-2.5">
+                <div 
+                  className="relative w-14 h-14 flex-shrink-0 rounded-xl overflow-hidden border border-navy/15 shadow-inner bg-slate-900"
+                  style={{ width: '56px', height: '56px', minWidth: '56px', minHeight: '56px', maxWidth: '56px', maxHeight: '56px' }}
+                >
+                  <img
+                    src={previewImageUrl}
+                    alt={idea.title}
+                    onError={(e) => {
+                      const target = e.currentTarget;
+                      if (idea.fallbackImageUrl && target.src !== idea.fallbackImageUrl && !idea.fallbackImageUrl.includes('pollinations.ai')) {
+                        target.src = idea.fallbackImageUrl;
+                      } else {
+                        target.src = '/blueprints/jute-patchwork-tote.jpg';
+                      }
+                    }}
+                    className="w-full h-full object-cover block"
+                    style={{ width: '100%', height: '100%', maxWidth: '100%', maxHeight: '100%', objectFit: 'cover' }}
+                  />
+                  <span className={`absolute bottom-0 inset-x-0 py-0.5 text-[8px] font-mono font-bold text-white text-center shadow-2xs truncate ${
+                    isPhotoConditioned 
+                      ? 'bg-emerald-700/90' 
+                      : (idea.isGenericReference ? 'bg-amber-800/90' : 'bg-navy/90')
+                  }`}>
+                    {isPhotoConditioned ? 'AI Preview' : (idea.isGenericReference ? 'Ref Style' : 'Design')}
+                  </span>
+                </div>
+
+                <div 
+                  className="relative w-14 h-14 flex-shrink-0 rounded-xl overflow-hidden border border-navy/15 shadow-inner bg-slate-900"
+                  style={{ width: '56px', height: '56px', minWidth: '56px', minHeight: '56px', maxWidth: '56px', maxHeight: '56px' }}
+                >
+                  <img
+                    src={fabric.imageUrl}
+                    alt={fabric.name}
+                    className="w-full h-full object-cover block"
+                    style={{ width: '100%', height: '100%', maxWidth: '100%', maxHeight: '100%', objectFit: 'cover' }}
+                  />
+                  <span className="absolute bottom-0 inset-x-0 py-0.5 bg-coral/90 text-[8px] font-mono font-bold text-white text-center shadow-2xs truncate">
+                    Fabric
+                  </span>
+                </div>
+
+                <div className="text-xs min-w-0 pl-1">
+                  <span className="text-[10px] uppercase font-mono text-charcoal-muted block">Remnant Source</span>
+                  <p className="font-serif font-bold text-navy truncate max-w-[130px]">{fabric.name}</p>
+                  <p className="text-[11px] text-coral font-mono">
+                    {fabric.dimensions?.width}×{fabric.dimensions?.height || fabric.dimensions?.length} {fabric.dimensions?.unit || 'cm'} (~{fabric.weightGsm || 200} GSM)
+                  </p>
+                </div>
+              </div>
+
+              {/* Status & Preview Action */}
+              <div className="border-t border-navy/5 pt-1.5">
+                {isPhotoConditioned ? (
+                  <p className="text-[10px] text-emerald-800 font-mono flex items-center gap-1">
+                    <CheckCircle2 className="w-3 h-3 text-emerald-600 flex-shrink-0" />
+                    AI concept conditioned on your uploaded fabric
+                  </p>
+                ) : (
+                  <div>
+                    {idea.isGenericReference && (
+                      <p className="text-[9px] text-amber-700 font-mono italic mb-1">
+                        Curated style reference • Does not depict your fabric
+                      </p>
+                    )}
+                    {fabric.imageUrl && (
+                      <button
+                        type="button"
+                        onClick={handleGeneratePreview}
+                        disabled={isGeneratingPreview}
+                        className="w-full text-[10px] font-mono px-2.5 py-1 rounded-lg bg-coral/10 hover:bg-coral/20 text-coral border border-coral/30 transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                      >
+                        <Sparkles className="w-3 h-3 text-coral" />
+                        <span>{isGeneratingPreview ? 'Synthesizing with Fabric Photo...' : 'Generate AI Preview (From My Fabric)'}</span>
+                      </button>
+                    )}
+                  </div>
+                )}
+
+                {previewError && (
+                  <p className="text-[10px] text-rose-700 font-mono mt-1">
+                    {previewError}
+                  </p>
+                )}
+                {previewRequiresSetup && (
+                  <p className="text-[9px] text-slate-500 font-mono mt-0.5">
+                    Requires server STABILITY_API_KEY or BFL_API_KEY environment variable.
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Project Visual Preview & Reference Banner (Fitted to Screen) */}
+          <div className="rounded-2xl bg-slate-950/90 border border-navy/20 p-4 sm:p-5 text-paper shadow-md">
+            <div className="flex flex-col md:flex-row items-center gap-5">
+              {/* Responsive Contained Image Box - strictly bounded to fit screen */}
+              <div 
+                className="relative w-full md:w-auto md:min-w-[240px] md:max-w-[280px] h-44 sm:h-48 rounded-xl overflow-hidden bg-slate-900 flex items-center justify-center p-2 border border-white/10 shadow-inner flex-shrink-0"
+              >
                 <img
-                  src={idea.imageUrl && !idea.imageUrl.includes('pollinations.ai') ? idea.imageUrl : (idea.fallbackImageUrl || '/blueprints/jute-patchwork-tote.jpg')}
+                  src={previewImageUrl}
                   alt={idea.title}
                   onError={(e) => {
                     const target = e.currentTarget;
                     if (idea.fallbackImageUrl && target.src !== idea.fallbackImageUrl && !idea.fallbackImageUrl.includes('pollinations.ai')) {
                       target.src = idea.fallbackImageUrl;
                     } else {
-                      target.src = fabric.imageUrl;
+                      target.src = '/blueprints/jute-patchwork-tote.jpg';
                     }
                   }}
-                  className="w-13 h-13 rounded-xl object-cover border border-navy/15 shadow-inner"
+                  className="max-h-full max-w-full object-contain rounded-lg shadow-md block transition-transform duration-300 hover:scale-105"
+                  style={{ maxHeight: '175px', maxWidth: '100%', objectFit: 'contain' }}
                 />
-                <span className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 px-1 py-0.2 bg-navy text-[8px] font-mono font-bold text-white rounded shadow-2xs">
-                  Design
+                <span className={`absolute top-2 left-2 px-2 py-0.5 text-[9px] font-mono font-bold rounded-md backdrop-blur-md shadow-sm ${
+                  isPhotoConditioned 
+                    ? 'bg-emerald-600/90 text-white' 
+                    : (idea.isGenericReference ? 'bg-amber-600/90 text-white' : 'bg-navy/90 text-paper')
+                }`}>
+                  {isPhotoConditioned ? '✨ Fabric-Conditioned AI Preview' : (idea.isGenericReference ? 'Curated Style Reference' : 'Atelier Design Blueprint')}
                 </span>
               </div>
 
-              <div className="relative flex-shrink-0">
-                <img
-                  src={fabric.imageUrl}
-                  alt={fabric.name}
-                  className="w-13 h-13 rounded-xl object-cover border border-navy/15 shadow-inner"
-                />
-                <span className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 px-1 py-0.2 bg-coral text-[8px] font-mono font-bold text-white rounded shadow-2xs">
-                  Fabric
-                </span>
-              </div>
-
-              <div className="text-xs min-w-0 pl-1">
-                <span className="text-[10px] uppercase font-mono text-charcoal-muted block">Remnant Source</span>
-                <p className="font-serif font-bold text-navy truncate max-w-[130px]">{fabric.name}</p>
-                <p className="text-[11px] text-coral font-mono">
-                  {fabric.dimensions?.width}×{fabric.dimensions?.height || fabric.dimensions?.length} {fabric.dimensions?.unit || 'cm'} (~{fabric.weightGsm || 200} GSM)
+              {/* Visual Project Concept Details */}
+              <div className="space-y-2.5 flex-1 min-w-0 text-center md:text-left">
+                <div className="flex flex-wrap items-center justify-center md:justify-start gap-2">
+                  <span className="text-[10px] font-mono uppercase tracking-widest text-coral font-bold">
+                    Visual Target Blueprint
+                  </span>
+                  <span className="text-white/30">•</span>
+                  <span className="text-[10px] font-mono text-white/70">
+                    Fabric: {fabric.name} ({fabric.dominantColor || 'Natural'})
+                  </span>
+                </div>
+                
+                <h3 className="font-serif text-lg sm:text-xl font-bold text-white truncate">
+                  {idea.title}
+                </h3>
+                
+                <p className="text-xs text-white/70 leading-relaxed font-sans line-clamp-2">
+                  {idea.description || idea.subtitle || feasibility.suitabilityReason}
                 </p>
+
+                <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 pt-1">
+                  {fabric.imageUrl && !isPhotoConditioned && (
+                    <button
+                      type="button"
+                      onClick={handleGeneratePreview}
+                      disabled={isGeneratingPreview}
+                      className="text-xs font-mono px-3 py-1.5 rounded-lg bg-coral text-white hover:bg-coral-600 transition-colors flex items-center gap-1.5 cursor-pointer shadow-sm disabled:opacity-50"
+                    >
+                      <Sparkles className="w-3.5 h-3.5" />
+                      <span>{isGeneratingPreview ? 'Synthesizing with Fabric Photo...' : 'Synthesize AI Preview (From My Fabric)'}</span>
+                    </button>
+                  )}
+                  {isPhotoConditioned && (
+                    <span className="text-xs font-mono text-emerald-400 flex items-center gap-1">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                      Visual concept conditioned on your uploaded fabric swatch
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
           </div>

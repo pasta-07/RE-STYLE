@@ -48,6 +48,31 @@ export interface CuttingLayoutResult {
 }
 
 /**
+ * Parse colloquial and natural dimensions (e.g. "a 4 × 4 piece", "4x4 in", "40x50 cm")
+ */
+export function parseNaturalDimensions(text: string): { width: number; height: number; unit: 'cm' | 'in' } | null {
+  if (!text || typeof text !== 'string') return null;
+  const cleaned = text.trim().toLowerCase();
+  const match = cleaned.match(/(\d+(?:\.\d+)?)\s*(?:[x×*]|by)\s*(\d+(?:\.\d+)?)(?:\s*(cm|in|inch|inches|m|meter|meters))?/i);
+  if (match) {
+    const d1 = parseFloat(match[1]);
+    const d2 = parseFloat(match[2]);
+    let rawUnit = (match[3] || '').toLowerCase();
+    let unit: 'cm' | 'in' = 'cm';
+    if (rawUnit.startsWith('in')) {
+      unit = 'in';
+    } else if (rawUnit.startsWith('m')) {
+      return { width: Math.round(d1 * 100), height: Math.round(d2 * 100), unit: 'cm' };
+    } else if (!rawUnit) {
+      // In craft descriptions, dimensions <= 15 without units typically denote inches (e.g. "4x4")
+      unit = (d1 <= 15 && d2 <= 15) ? 'in' : 'cm';
+    }
+    return { width: d1, height: d2, unit };
+  }
+  return null;
+}
+
+/**
  * Standardize dimension values to centimeters
  */
 export function toCm(val: number, unit: 'cm' | 'in' = 'cm'): number {
@@ -283,8 +308,21 @@ export function evaluateFabricFeasibility(
   idea: UpcycleIdea,
   fabric: FabricSample
 ): CuttingLayoutResult {
-  const remnantW = toCm(fabric.dimensions.width, fabric.dimensions.unit);
-  const remnantH = toCm(fabric.dimensions.height, fabric.dimensions.unit);
+  let rawW = fabric.dimensions.width;
+  let rawH = fabric.dimensions.height;
+  let rawUnit = fabric.dimensions.unit || 'cm';
+
+  if ((!rawW || !rawH || rawW <= 0 || rawH <= 0) && fabric.dimensionsText) {
+    const parsed = parseNaturalDimensions(fabric.dimensionsText) || parseNaturalDimensions(fabric.name);
+    if (parsed) {
+      rawW = parsed.width;
+      rawH = parsed.height;
+      rawUnit = parsed.unit;
+    }
+  }
+
+  const remnantW = toCm(rawW, rawUnit);
+  const remnantH = toCm(rawH, rawUnit);
   const remnantArea = remnantW * remnantH;
 
   // Retrieve standardized registry specs or fallback to idea properties
@@ -406,8 +444,40 @@ export function evaluateFabricFeasibility(
     modificationNeeded = `Exceeds available remnant dimensions. Requires +${Math.max(0, registrySpec.minDirectRemnant.width * registrySpec.minDirectRemnant.height - remnantArea)} cm² additional fabric or dedicated yardage. Excluded from single-remnant zero-waste claims.`;
   }
 
-  // Generate dynamic, fabric-specific suitability reason
-  const suitabilityReason = `${fabric.name} (~${fabric.weightGsm} GSM ${fabric.weave}) provides ${fabricSpecs.seamType.toLowerCase()} properties. ${explanation}`;
+  // Generate dynamic, fabric- and garment-specific suitability reason
+  const contextNotes: string[] = [];
+  if (fabric.clothingType) {
+    const cType = fabric.clothingType.toLowerCase();
+    if (cType.includes('jean') || cType.includes('trouser') || cType.includes('pant')) {
+      contextNotes.push(`Deconstructing these ${fabric.clothingType} provides 2 main leg tube panels (~70-80 cm) ideal for continuous cutting, plus back pockets for accents.`);
+    } else if (cType.includes('shirt') || cType.includes('blouse')) {
+      contextNotes.push(`Disassembling this ${fabric.clothingType} allows repurposing the front button placket and yoke.`);
+    } else if (cType.includes('jacket') || cType.includes('coat')) {
+      contextNotes.push(`Disassembling this ${fabric.clothingType} yields structured torso shells and collar facing.`);
+    } else {
+      contextNotes.push(`Deconstructing this ${fabric.clothingType} yields customized flat fabric panels for layout.`);
+    }
+  }
+
+  if (fabric.condition) {
+    const cond = fabric.condition.toLowerCase();
+    if (cond.includes('distressed') || cond.includes('worn') || cond.includes('torn') || cond.includes('frayed')) {
+      contextNotes.push(`Worn or frayed zones can be celebrated with visible sashiko mending or isolated into patch accents.`);
+    } else if (cond.includes('stained')) {
+      contextNotes.push(`Cutting layout can navigate around stains, reserving flawed sections for hidden inner facing.`);
+    }
+  }
+
+  if (fabric.texture && fabric.texture !== 'Smooth') {
+    contextNotes.push(`The ${fabric.texture.toLowerCase()} surface texture gives tactile character to finished seams.`);
+  }
+
+  if (fabric.notes) {
+    contextNotes.push(`Maker note: "${fabric.notes}".`);
+  }
+
+  const contextStr = contextNotes.length > 0 ? ` ${contextNotes.join(' ')}` : '';
+  const suitabilityReason = `${fabric.name} (~${fabric.weightGsm || 200} GSM ${fabric.weave || 'weave'}) provides ${fabricSpecs.seamType.toLowerCase()} properties. ${explanation}${contextStr}`;
 
   const remainingNotes = remainingArea > 150
     ? `Yields ~${remainingArea} cm² offcut remainder suitable for matching cord organizers or sashiko coasters.`

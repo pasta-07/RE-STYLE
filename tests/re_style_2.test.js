@@ -1,7 +1,6 @@
 import assert from 'assert';
 import 'dotenv/config';
-import http from 'http';
-import app from '../server.js';
+import app, { validateConceptsConstraints, isImageAssociatedWithFabric } from '../server.js';
 import store from '../server/store.js';
 
 console.log('================================================================');
@@ -239,6 +238,103 @@ try {
     assert.ok(/confirm remnant/i.test(data.recommendations[0].feasibility.notes));
   });
 
+  await runTest('2.4 Planner — Parse colloquial dimensions (e.g. "a 4 × 4 piece") and scale blueprint feasibility', async () => {
+    const res = await fetch(`${BASE_URL}/api/recommendations`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-user-id': TEST_USER },
+      body: JSON.stringify({
+        fabric: {
+          name: 'Compact Denim Offcut',
+          dimensionsText: 'a 4 × 4 piece', // 4x4 in = ~10.16x10.16 cm = 103 cm²
+          material: 'denim',
+          condition: 'good'
+        }
+      })
+    });
+    assert.strictEqual(res.status, 200);
+    const data = await res.json();
+    assert.ok(data.recommendations.length > 0);
+
+    // Large tote bag (needs 56x34 cm) must be flagged as insufficient material
+    const largeTote = data.recommendations.find(r => r.id === 'rec-origami-tote');
+    assert.ok(largeTote);
+    assert.strictEqual(largeTote.feasibility.status, 'insufficient_material');
+    assert.ok(largeTote.matchScore < 50);
+
+    // Compact lavender sachet (10x10 cm) or cable wrap (15x5 cm) should be feasible
+    const compactProject = data.recommendations.find(r => r.id === 'rec-lavender-sachet' || r.id === 'rec-cable-tie-wraps');
+    assert.ok(compactProject);
+    assert.ok(['feasible', 'tight'].includes(compactProject.feasibility.status));
+  });
+
+  await runTest('2.5 Planner — Differentiate blueprints by garment type and distressed condition', async () => {
+    const jeansRes = await fetch(`${BASE_URL}/api/recommendations`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-user-id': TEST_USER },
+      body: JSON.stringify({
+        fabric: {
+          name: 'Worn Jeans',
+          clothingType: 'Vintage Denim Jeans',
+          dimensions: { length: 80, width: 35, unit: 'cm' },
+          material: 'denim',
+          condition: 'distressed',
+          notes: 'Torn knees and faded thighs'
+        }
+      })
+    });
+    assert.strictEqual(jeansRes.status, 200);
+    const jeansData = await jeansRes.json();
+    const jeansTote = jeansData.recommendations.find(r => r.id === 'rec-origami-tote' || r.id === 'rec-crossbody-utility-rig');
+    assert.ok(jeansTote);
+    assert.ok(jeansTote.materialNotes.includes('trousers') || jeansTote.suitabilityReason.includes('trousers'));
+
+    // Compare with Silk Blouse
+    const silkRes = await fetch(`${BASE_URL}/api/recommendations`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-user-id': TEST_USER },
+      body: JSON.stringify({
+        fabric: {
+          name: 'Silk Blouse',
+          clothingType: 'Silk Blouse',
+          dimensions: { length: 50, width: 40, unit: 'cm' },
+          material: 'silk',
+          condition: 'like-new'
+        }
+      })
+    });
+    assert.strictEqual(silkRes.status, 200);
+    const silkData = await silkRes.json();
+    // Heavy tote should be marked incompatible or lack tensile rigidity for silk
+    const silkTote = silkData.recommendations.find(r => r.id === 'rec-origami-tote');
+    assert.ok(silkTote);
+    assert.strictEqual(silkTote.materialMatch, false);
+  });
+
+  await runTest('2.6 Generate Designs — Produce tailored concepts accepting custom clothing details', async () => {
+    const res = await fetch(`${BASE_URL}/api/generate-designs`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-user-id': TEST_USER },
+      body: JSON.stringify({
+        fabricType: 'Corduroy Trousers',
+        clothingType: 'Corduroy Trousers',
+        dimensionsText: 'a 4 × 4 piece',
+        dominantColor: 'Terracotta',
+        condition: 'frayed',
+        texture: 'Ribbed wale',
+        notes: 'Ribbed corduroy offcut from hem alteration'
+      })
+    });
+    assert.strictEqual(res.status, 200);
+    const data = await res.json();
+    assert.strictEqual(data.success, true);
+    const concepts = data.concepts || data.designs;
+    assert.ok(Array.isArray(concepts));
+    assert.ok(concepts.length >= 2);
+    // At least one concept should reference the fabric type, color, or condition
+    const allTitles = concepts.map(c => `${c.title} ${c.subtitle || ''} ${c.description || ''}`).join(' ');
+    assert.ok(/corduroy|terracotta|trousers|ribbed/i.test(allTitles));
+  });
+
   // ---------------------------------------------------------------------------
   // 3. SAVING, SHARING, AND EXPORT TESTS (Feature 3)
   // ---------------------------------------------------------------------------
@@ -435,6 +531,214 @@ try {
     assert.ok(data.endpoints.makerStats);
   });
 
+  // ---------------------------------------------------------------------------
+  // 6. CONSTRAINT ENFORCEMENT & CONFLICT DETECTION TESTS
+  // ---------------------------------------------------------------------------
+  await runTest('6.1 Constraint Preservation — User blue fabric strictly preserves blue color across project recommendations', async () => {
+    const res = await fetch(`${BASE_URL}/api/recommendations`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-user-id': TEST_USER },
+      body: JSON.stringify({
+        fabric: {
+          name: 'Vintage Indigo Denim',
+          dominantColor: 'Indigo Blue',
+          material: 'denim',
+          userConfirmedColor: true,
+          dimensions: { length: 50, width: 40, unit: 'cm' },
+          condition: 'good'
+        }
+      })
+    });
+    assert.strictEqual(res.status, 200);
+    const data = await res.json();
+    assert.ok(data.recommendations.length > 0);
+
+    for (const rec of data.recommendations) {
+      const lowerTitle = (rec.title || '').toLowerCase();
+      const lowerCustomTitle = (rec.customizedTitle || '').toLowerCase();
+
+      // Ensure no recommendation claims the project is purple, violet, brown, or rust
+      assert.ok(!lowerTitle.includes('purple'), `Project title should not claim purple for blue fabric: ${rec.title}`);
+      assert.ok(!lowerTitle.includes('violet'), `Project title should not claim violet for blue fabric: ${rec.title}`);
+      assert.ok(!lowerTitle.includes('brown'), `Project title should not claim brown for blue fabric: ${rec.title}`);
+      assert.ok(!lowerCustomTitle.includes('purple'), `Customized title should not claim purple for blue fabric: ${rec.customizedTitle}`);
+      assert.ok(!lowerCustomTitle.includes('brown'), `Customized title should not claim brown for blue fabric: ${rec.customizedTitle}`);
+
+      // Ensure that if the image does not match blue denim, it is marked as a generic reference
+      if (rec.imageUrl && (rec.imageUrl.includes('jute') || rec.imageUrl.includes('yellow') || rec.imageUrl.includes('purple'))) {
+        assert.strictEqual(rec.isGenericReference, true, `Non-matching image ${rec.imageUrl} must be flagged as isGenericReference`);
+        assert.ok(rec.imageLabel.includes('Generic'), `Non-matching image must be labeled generic reference`);
+      }
+    }
+  });
+
+  await runTest('6.2 Photo Override Prevention — User confirmed color is preserved against photo analysis in pipeline', async () => {
+    const res = await fetch(`${BASE_URL}/api/generate-designs`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        fabricType: 'denim',
+        dominantColor: 'Electric Blue',
+        userConfirmedColor: true,
+        userConfirmedMaterial: true,
+        quantity: '0.6 meters (50x40cm)'
+      })
+    });
+    const data = await res.json();
+    if (data.success && data.designs && data.designs.length > 0) {
+      assert.strictEqual(data.fabric.dominantColor, 'Electric Blue');
+      assert.strictEqual(data.fabric.userConfirmedColor, true);
+      // All generated concept titles or descriptions must not be purple or brown
+      for (const d of data.designs) {
+        const text = `${d.title} ${d.design_description || ''}`.toLowerCase();
+        assert.ok(!text.includes('purple silk') && !text.includes('brown jute'), 'Must not substitute purple or brown for electric blue');
+      }
+    } else if (data.noReliableMatch) {
+      assert.ok(data.conflict || data.error);
+    }
+  });
+
+  await runTest('6.3 Conflict Detection — validateConceptsConstraints identifies contradictory color output', async () => {
+    const fabricDetails = { dominantColor: 'Indigo Blue', fabricType: 'denim' };
+    
+    // Contradictory concept proposing purple silk
+    const conflictingConcepts = [
+      {
+        id: 'c-1',
+        title: 'Deep Purple Silk Evening Clutch',
+        description: 'Made from rich purple silk fabric with metallic accents.'
+      }
+    ];
+
+    const result = validateConceptsConstraints(conflictingConcepts, fabricDetails);
+    assert.strictEqual(result.isValid, false);
+    assert.ok(result.conflict);
+    assert.strictEqual(result.conflict.violatingTerm, 'purple');
+    assert.strictEqual(result.conflict.expectedColor, 'Indigo Blue');
+
+    // Matching concept proposing indigo denim
+    const matchingConcepts = [
+      {
+        id: 'c-2',
+        title: 'Indigo Denim Chore Vest',
+        description: 'Tailored from durable indigo denim with double-needle topstitching.'
+      }
+    ];
+
+    const validResult = validateConceptsConstraints(matchingConcepts, fabricDetails);
+    assert.strictEqual(validResult.isValid, true);
+  });
+
+  await runTest('6.4 Image Association — Correctly distinguishes matched visual assets from generic references', async () => {
+    const blueFabric = { dominantColor: 'Cobalt Blue', material: 'denim' };
+
+    // Denim jacket is matched for denim fabric
+    assert.strictEqual(isImageAssociatedWithFabric('/blueprints/denim-chore-jacket.jpg', blueFabric), true);
+
+    // Purple silk scarf is conflicting for blue fabric
+    assert.strictEqual(isImageAssociatedWithFabric('/blueprints/purple-silk-origami-scarf.jpg', blueFabric), false);
+
+    // Terracotta corduroy is conflicting for blue fabric
+    assert.strictEqual(isImageAssociatedWithFabric('/blueprints/terracotta-corduroy-tote.jpg', blueFabric), false);
+
+    // Jute patchwork tote is conflicting for blue fabric
+    assert.strictEqual(isImageAssociatedWithFabric('/blueprints/jute-patchwork-tote.jpg', blueFabric), false);
+  });
+
+  // ---------------------------------------------------------------------------
+  // 7. IMAGE GENERATION / EDITING & ASSET INTEGRITY TESTS
+  // ---------------------------------------------------------------------------
+  await runTest('7.1 Image Editing API — POST /api/generate-project-preview rejects requests missing fabricImage', async () => {
+    const res = await fetch(`${BASE_URL}/api/generate-project-preview`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        projectTitle: 'Zero-Waste Tote',
+        fabricColor: 'Denim Blue',
+        fabricMaterial: 'denim'
+      })
+    });
+    assert.strictEqual(res.status, 400);
+    const data = await res.json();
+    assert.strictEqual(data.success, false);
+    assert.ok(data.error.includes('fabricImage is required'));
+  });
+
+  await runTest('7.2 Image Editing API — POST /api/generate-project-preview succeeds with conditioning in test mode', async () => {
+    const res = await fetch(`${BASE_URL}/api/generate-project-preview`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        fabricImage: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkWPjfDwAEeQHzE1LqZgAAAABJRU5ErkJggg==',
+        fabricColor: 'Midnight Navy',
+        fabricMaterial: 'denim',
+        fabricDimensions: '60x40 cm',
+        projectTitle: 'Zero-Waste Utility Apron',
+        projectDescription: 'Constructed from heavy midnight navy denim scrap with contrast stitching.',
+        category: 'Accessories',
+        testMode: true
+      })
+    });
+    assert.strictEqual(res.status, 200);
+    const data = await res.json();
+    assert.strictEqual(data.success, true);
+    assert.strictEqual(data.isPhotoConditioned, true);
+    assert.ok(data.imageUrl.startsWith('data:image/svg+xml;utf8,'));
+    assert.ok(data.promptConstraints.dominantColor.includes('Midnight Navy'));
+    assert.ok(data.promptConstraints.material.includes('denim'));
+    assert.strictEqual(data.disclaimer, 'AI-generated concept visualization conditioned on uploaded fabric photo. Not a finished photograph of a real garment.');
+  });
+
+  await runTest('7.3 Image Editing Transparency — Reports setup required when API keys not provided (no silent generic model)', async () => {
+    // When testMode is false and no API key is present, it returns requiresSetup: true rather than falling back to generic models
+    const res = await fetch(`${BASE_URL}/api/generate-project-preview`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        fabricImage: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkWPjfDwAEeQHzE1LqZgAAAABJRU5ErkJggg==',
+        fabricColor: 'Cobalt Blue',
+        fabricMaterial: 'linen',
+        projectTitle: 'Linen Crossbody Pouch',
+        category: 'Accessories',
+        testMode: false
+      })
+    });
+    const data = await res.json();
+    if (!process.env.STABILITY_API_KEY && !process.env.BFL_API_KEY) {
+      assert.strictEqual(res.status, 200);
+      assert.strictEqual(data.success, false);
+      assert.strictEqual(data.requiresSetup, true);
+      assert.ok(data.message.includes('STABILITY_API_KEY') || data.message.includes('BFL_API_KEY'));
+      assert.ok(!data.imageUrl, 'Must not return an unconditioned generic image when keys are missing');
+    }
+  });
+
+  await runTest('7.4 Asset Audit — Verifies no silver dress or AI model images exist in blueprint catalogue or recommendations', async () => {
+    const res = await fetch(`${BASE_URL}/api/recommendations`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-user-id': TEST_USER },
+      body: JSON.stringify({
+        fabric: {
+          name: 'Sage French Lace Remnant',
+          dominantColor: 'Sage Green',
+          material: 'lace',
+          userConfirmedColor: true,
+          dimensions: { length: 50, width: 40, unit: 'cm' },
+          condition: 'good'
+        }
+      })
+    });
+    assert.strictEqual(res.status, 200);
+    const data = await res.json();
+    for (const rec of data.recommendations) {
+      const url = rec.imageUrl || '';
+      assert.ok(!url.includes('sage-lace-french-evening-dress'), `Must not reference silver dress: ${url}`);
+      assert.ok(!url.includes('sage-lace-overlay-top'), `Must not reference AI girl lace overlay top: ${url}`);
+      assert.ok(!url.includes('test-yellow-cotton-gilet'), `Must not reference AI test doll: ${url}`);
+      assert.ok(!url.includes('pollinations.ai'), `Must not reference unconditioned pollinations lookbook: ${url}`);
+    }
+  });
+
 } finally {
   server.close();
 }
@@ -445,4 +749,7 @@ console.log('================================================================');
 
 if (passedTests !== totalTests) {
   process.exit(1);
+} else {
+  process.exit(0);
 }
+

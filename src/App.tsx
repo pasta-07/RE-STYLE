@@ -56,6 +56,7 @@ export const App: React.FC = () => {
   const [aiTrends, setAiTrends] = useState<Array<{ title: string; snippet: string; url: string }>>([]);
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [galleryFilterMode, setGalleryFilterMode] = useState<CatalogSourceFilter>('all');
+  const [aiErrorMessage, setAiErrorMessage] = useState<string | null>(null);
   const activeAnalysisIdRef = useRef<string | null>(null);
 
   // Load shared inventory & projects on mount and when tabs change
@@ -109,9 +110,10 @@ export const App: React.FC = () => {
   };
 
   const handleFabricChange = (newFabric: FabricSample) => {
-    if (newFabric.id !== currentFabric.id || newFabric.imageUrl !== currentFabric.imageUrl || newFabric.material !== currentFabric.material) {
+    if (newFabric.id !== currentFabric.id || newFabric.imageUrl !== currentFabric.imageUrl || newFabric.material !== currentFabric.material || newFabric.dominantColor !== currentFabric.dominantColor) {
       setAiDesigns([]);
       setAiTrends([]);
+      setAiErrorMessage(null);
       setGalleryFilterMode('all');
     }
     setCurrentFabric(newFabric);
@@ -195,6 +197,7 @@ export const App: React.FC = () => {
     setIsAiLoading(true);
     setAiDesigns([]);
     setAiTrends([]);
+    setAiErrorMessage(null);
 
     try {
       const preferredFiber = fabricToAnalyze.material && !fabricToAnalyze.material.includes('User Defined')
@@ -203,29 +206,44 @@ export const App: React.FC = () => {
 
       const response = await generateDesigns({
         fabricType: preferredFiber,
-        quantity: `${fabricToAnalyze.dimensions.width}×${fabricToAnalyze.dimensions.height} ${fabricToAnalyze.dimensions.unit} remnant (${fabricToAnalyze.weightGsm} GSM)`,
+        clothingType: fabricToAnalyze.clothingType,
+        quantity: fabricToAnalyze.dimensionsText || `${fabricToAnalyze.dimensions.width}×${fabricToAnalyze.dimensions.height} ${fabricToAnalyze.dimensions.unit} remnant (~${fabricToAnalyze.weightGsm || 200} GSM)`,
+        dimensionsText: fabricToAnalyze.dimensionsText,
+        condition: fabricToAnalyze.condition,
+        texture: fabricToAnalyze.texture,
+        notes: fabricToAnalyze.notes,
         cost: '$14.00/meter',
-        preferences: fabricToAnalyze.tagline || 'Zero-waste contemporary silhouettes and circular accessories',
+        preferences: fabricToAnalyze.notes || fabricToAnalyze.tagline || 'Zero-waste contemporary silhouettes and circular accessories',
         image: fabricToAnalyze.imageUrl,
         dominantColor: fabricToAnalyze.dominantColor,
         colorFamily: fabricToAnalyze.colorFamily,
         archetype: fabricToAnalyze.archetype,
         pattern: fabricToAnalyze.pattern,
         colorPalette: fabricToAnalyze.colorPalette,
+        userConfirmedColor: fabricToAnalyze.userConfirmedColor,
+        userConfirmedMaterial: fabricToAnalyze.userConfirmedMaterial,
       });
 
       if (activeAnalysisIdRef.current !== analysisId) {
         return;
       }
 
-      if (response.success && response.designs) {
+      if (response.success && response.designs && response.designs.length > 0) {
         setAiDesigns(response.designs);
         setAiTrends(response.trends || []);
+        setAiErrorMessage(null);
+        setGalleryFilterMode('ai');
+      } else {
+        setAiDesigns([]);
+        setAiTrends(response.trends || []);
+        setAiErrorMessage(response.error || 'No reliable project recommendations could be matched to your required fabric constraints.');
         setGalleryFilterMode('ai');
       }
-    } catch (err) {
+    } catch (err: any) {
       if (activeAnalysisIdRef.current !== analysisId) return;
       console.warn('[Re:Style API Notice] Backend not reached or fallback mode active:', err);
+      setAiErrorMessage(err.message || 'Failed to reach design recommendation engine.');
+      setAiDesigns([]);
     } finally {
       if (activeAnalysisIdRef.current === analysisId) {
         setIsAiLoading(false);
@@ -289,6 +307,7 @@ export const App: React.FC = () => {
               isAiLoading={isAiLoading}
               filterMode={galleryFilterMode}
               onFilterModeChange={setGalleryFilterMode}
+              aiErrorMessage={aiErrorMessage}
             />
 
             <ImpactSection />
@@ -351,6 +370,7 @@ export const App: React.FC = () => {
         aiDesigns={aiDesigns}
         liveTrends={aiTrends}
         isAiLoading={isAiLoading}
+        aiErrorMessage={aiErrorMessage}
       />
 
       {/* Editorial Atelier Footer */}

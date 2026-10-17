@@ -1,5 +1,6 @@
 export interface FabricDesignRequest {
   fabricType: string;
+  clothingType?: string;
   quantity: string;
   cost: string;
   preferences: string;
@@ -7,10 +8,16 @@ export interface FabricDesignRequest {
   dominantColor?: string;
   colorFamily?: string;
   pattern?: string;
+  condition?: string;
+  texture?: string;
+  notes?: string;
+  dimensionsText?: string;
   colorPalette?: Array<{ name: string; hex: string } | string>;
   structuralBody?: string;
   tensileDrape?: string;
   archetype?: string;
+  userConfirmedColor?: boolean;
+  userConfirmedMaterial?: boolean;
 }
 
 export interface DesignConcept {
@@ -42,7 +49,11 @@ export interface DesignConcept {
     passed: boolean;
     confidence?: string;
     notes: string;
+    isGenericReference?: boolean;
   };
+  isGenericReference?: boolean;
+  imageLabel?: string;
+  imageNote?: string;
   estimatedFabricUsage: string;
   estimatedProductionCost: string;
   potentialSellingPrice: string;
@@ -71,6 +82,8 @@ export interface DesignConcept {
 
 export interface GenerateDesignsResponse {
   success: boolean;
+  noReliableMatch?: boolean;
+  conflict?: string;
   requestId?: string;
   pipelineDurationMs?: number;
   fabric: FabricDesignRequest;
@@ -105,6 +118,8 @@ export interface FabricInspectionResult {
     structuralBody?: string;
     tensileDrape?: string;
     archetype?: string;
+    confidence?: string;
+    uncertaintyNotice?: string;
   };
   error?: string;
 }
@@ -145,8 +160,14 @@ export async function generateDesigns(
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
+      fabricType: data.fabricType,
       'fabric type': data.fabricType,
+      clothingType: data.clothingType,
       quantity: data.quantity,
+      dimensionsText: data.dimensionsText,
+      condition: data.condition,
+      texture: data.texture,
+      notes: data.notes,
       cost: data.cost,
       preferences: data.preferences,
       image: data.image,
@@ -155,6 +176,10 @@ export async function generateDesigns(
       archetype: data.archetype,
       pattern: data.pattern,
       colorPalette: data.colorPalette,
+      structuralBody: data.structuralBody,
+      tensileDrape: data.tensileDrape,
+      userConfirmedColor: data.userConfirmedColor,
+      userConfirmedMaterial: data.userConfirmedMaterial,
     }),
   });
 
@@ -200,4 +225,67 @@ export async function regenerateDesignImage(data: {
   }
 
   return response.json();
+}
+
+export interface ProjectPreviewResult {
+  success: boolean;
+  previewUrl: string | null;
+  imageUrl?: string | null;
+  isPhotoConditioned: boolean;
+  provider?: string;
+  label?: string;
+  disclaimer?: string;
+  colorPreserved?: boolean;
+  error?: string;
+  message?: string;
+  requiresSetup?: boolean;
+  setupInstructions?: any;
+  promptConstraints?: any;
+  constraintsEnforced?: any;
+}
+
+/**
+ * Requests an authentic fabric-conditioned project preview using the uploaded fabric photo
+ */
+export async function generateProjectPreview(data: {
+  fabricImage: string;
+  fabricDetails?: any;
+  projectDetails?: any;
+  fabricColor?: string;
+  fabricMaterial?: string;
+  fabricDimensions?: string;
+  projectTitle?: string;
+  projectDescription?: string;
+  category?: string;
+  testMode?: boolean;
+}): Promise<ProjectPreviewResult> {
+  const response = await fetch(`${API_BASE_URL}/api/generate-project-preview`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    const errorBody = await response.json().catch(() => ({}));
+    return {
+      success: false,
+      previewUrl: null,
+      imageUrl: null,
+      isPhotoConditioned: false,
+      error: errorBody.error || errorBody.details || `HTTP ${response.status}`,
+      message: errorBody.message,
+      requiresSetup: errorBody.requiresSetup,
+      setupInstructions: errorBody.setupInstructions
+    };
+  }
+
+  const json = await response.json();
+  const effectiveUrl = json.imageUrl || json.previewUrl || null;
+  return {
+    ...json,
+    imageUrl: effectiveUrl,
+    previewUrl: effectiveUrl
+  };
 }

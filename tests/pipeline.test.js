@@ -1,5 +1,6 @@
 import assert from 'assert';
 import 'dotenv/config';
+import app from '../server.js';
 
 console.log('====================================================');
 console.log('🧪 Starting Re:Style AI Pipeline Automated Test Suite');
@@ -7,6 +8,22 @@ console.log('====================================================\n');
 
 let totalTests = 0;
 let passedTests = 0;
+let server = null;
+const TEST_PORT = 5098;
+let BASE_URL = 'http://localhost:5000';
+
+// Check if server is already running on 5000, else spin up test server
+try {
+  const check = await fetch('http://localhost:5000/api/health', { signal: AbortSignal.timeout(600) });
+  if (!check.ok) throw new Error('Not running');
+} catch (_) {
+  await new Promise(resolve => {
+    server = app.listen(TEST_PORT, () => {
+      BASE_URL = `http://localhost:${TEST_PORT}`;
+      resolve();
+    });
+  });
+}
 
 async function runTest(testName, testFn) {
   totalTests++;
@@ -26,7 +43,7 @@ async function runTest(testName, testFn) {
 // ---------------------------------------------------------------------------
 await runTest('Test A — Different fabric uploads produce independent profiles & distinct concepts', async () => {
   // Fabric 1: Blue Denim
-  const denimRes = await fetch('http://localhost:5000/api/generate-designs', {
+  const denimRes = await fetch(`${BASE_URL}/api/generate-designs`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -49,7 +66,7 @@ await runTest('Test A — Different fabric uploads produce independent profiles 
   assert.ok(/denim|chore|rig|apron|gilet|jacket|utility/i.test(denimTitles), 'Denim designs should reflect denim workwear');
 
   // Fabric 2: Red Terracotta Corduroy
-  const cordRes = await fetch('http://localhost:5000/api/generate-designs', {
+  const cordRes = await fetch(`${BASE_URL}/api/generate-designs`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -75,7 +92,7 @@ await runTest('Test A — Different fabric uploads produce independent profiles 
 // TEST B — Multiple Designs Data Contract
 // ---------------------------------------------------------------------------
 await runTest('Test B — 5 designs for one upload each have unique IDs, concepts, image requests, and full data contract', async () => {
-  const res = await fetch('http://localhost:5000/api/generate-designs', {
+  const res = await fetch(`${BASE_URL}/api/generate-designs`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -128,7 +145,7 @@ await runTest('Test B — 5 designs for one upload each have unique IDs, concept
 // TEST C — Image-Description Consistency
 // ---------------------------------------------------------------------------
 await runTest('Test C — Image prompt is derived from exact concept and visually validated', async () => {
-  const res = await fetch('http://localhost:5000/api/generate-designs', {
+  const res = await fetch(`${BASE_URL}/api/generate-designs`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -158,12 +175,12 @@ await runTest('Test C — Image prompt is derived from exact concept and visuall
 await runTest('Test D — Duplicate requests produce distinct sets without overwriting or duplicate images', async () => {
   // Fire 2 concurrent requests with different fabrics
   const [res1, res2] = await Promise.all([
-    fetch('http://localhost:5000/api/generate-designs', {
+    fetch(`${BASE_URL}/api/generate-designs`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ fabricType: 'Raw Jute Burlap', dominantColor: 'Tan', quantity: '50x50 cm' })
     }),
-    fetch('http://localhost:5000/api/generate-designs', {
+    fetch(`${BASE_URL}/api/generate-designs`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ fabricType: 'Royal Purple Silk', dominantColor: 'Purple', quantity: '1 meter' })
@@ -192,7 +209,7 @@ await runTest('Test D — Duplicate requests produce distinct sets without overw
 // TEST E — Partial Failure & Single-Design Regeneration
 // ---------------------------------------------------------------------------
 await runTest('Test E — Single design regeneration updates only the targeted design', async () => {
-  const initialRes = await fetch('http://localhost:5000/api/generate-designs', {
+  const initialRes = await fetch(`${BASE_URL}/api/generate-designs`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ fabricType: 'Reclaimed Denim', dominantColor: 'Blue', quantity: '1.5m' })
@@ -202,7 +219,7 @@ await runTest('Test E — Single design regeneration updates only the targeted d
   const oldImage = targetDesign.image_url;
 
   // Call single design regeneration endpoint excluding old image
-  const regenRes = await fetch('http://localhost:5000/api/regenerate-design-image', {
+  const regenRes = await fetch(`${BASE_URL}/api/regenerate-design-image`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -226,17 +243,17 @@ await runTest('Test E — Single design regeneration updates only the targeted d
 // ---------------------------------------------------------------------------
 await runTest('Test F — Rapid successive requests preserve correct associations by request ID', async () => {
   // Fire 3 requests in rapid succession
-  const p1 = fetch('http://localhost:5000/api/generate-designs', {
+  const p1 = fetch(`${BASE_URL}/api/generate-designs`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ fabricType: 'Upload 1 Linen', dominantColor: 'White' })
   });
-  const p2 = fetch('http://localhost:5000/api/generate-designs', {
+  const p2 = fetch(`${BASE_URL}/api/generate-designs`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ fabricType: 'Upload 2 Denim', dominantColor: 'Blue' })
   });
-  const p3 = fetch('http://localhost:5000/api/generate-designs', {
+  const p3 = fetch(`${BASE_URL}/api/generate-designs`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ fabricType: 'Upload 3 Jute', dominantColor: 'Tan' })
@@ -262,7 +279,7 @@ await runTest('Test F — Rapid successive requests preserve correct association
 // ---------------------------------------------------------------------------
 await runTest('Test G — Missing/uncertain attributes are labeled low_confidence/unknown without inventing facts', async () => {
   // Inspect an empty/invalid payload
-  const emptyRes = await fetch('http://localhost:5000/api/inspect-fabric-image', {
+  const emptyRes = await fetch(`${BASE_URL}/api/inspect-fabric-image`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ image: '' })
@@ -270,7 +287,7 @@ await runTest('Test G — Missing/uncertain attributes are labeled low_confidenc
   assert.strictEqual(emptyRes.status, 400, 'Empty image should be rejected with 400');
 
   // Verify generic fabric defaults do not claim false high confidence
-  const genRes = await fetch('http://localhost:5000/api/generate-designs', {
+  const genRes = await fetch(`${BASE_URL}/api/generate-designs`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ fabricType: '', quantity: 'unknown' })
@@ -285,13 +302,13 @@ await runTest('Test G — Missing/uncertain attributes are labeled low_confidenc
 // ---------------------------------------------------------------------------
 await runTest('Test H — API failures report honest statuses rather than claiming false success', async () => {
   // Check health endpoint
-  const healthRes = await fetch('http://localhost:5000/api/health');
+  const healthRes = await fetch(`${BASE_URL}/api/health`);
   assert.strictEqual(healthRes.status, 200);
   const healthData = await healthRes.json();
   assert.strictEqual(healthData.status, 'healthy');
 
   // Verify that an invalid endpoint returns 404/500 rather than fabricated data
-  const invalidRes = await fetch('http://localhost:5000/api/inspect-fabric-image', {
+  const invalidRes = await fetch(`${BASE_URL}/api/inspect-fabric-image`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ image: 'invalid-non-base64-string' })
@@ -305,14 +322,14 @@ await runTest('Test H — API failures report honest statuses rather than claimi
 // TEST I — Cache Behavior
 // ---------------------------------------------------------------------------
 await runTest('Test I — Successive uploads produce fresh request IDs and distinct non-stale outputs', async () => {
-  const reqA = await fetch('http://localhost:5000/api/generate-designs', {
+  const reqA = await fetch(`${BASE_URL}/api/generate-designs`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ fabricType: 'Handloom Cotton', dominantColor: 'Yellow' })
   });
   const dataA = await reqA.json();
 
-  const reqB = await fetch('http://localhost:5000/api/generate-designs', {
+  const reqB = await fetch(`${BASE_URL}/api/generate-designs`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ fabricType: 'Handloom Cotton', dominantColor: 'Yellow' })
@@ -328,12 +345,12 @@ await runTest('Test I — Successive uploads produce fresh request IDs and disti
 // TEST J — Regression Verification
 // ---------------------------------------------------------------------------
 await runTest('Test J — Regression: Health check, endpoints, and data contracts remain fully functional', async () => {
-  const health = await fetch('http://localhost:5000/api/health');
+  const health = await fetch(`${BASE_URL}/api/health`);
   const hData = await health.json();
   assert.strictEqual(hData.status, 'healthy');
 
   // Verify sample generation has all required fields
-  const sampleRes = await fetch('http://localhost:5000/api/generate-designs', {
+  const sampleRes = await fetch(`${BASE_URL}/api/generate-designs`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -355,6 +372,10 @@ await runTest('Test J — Regression: Health check, endpoints, and data contract
   assert.ok(first.toolsNeeded);
   assert.ok(first.feasibility);
 });
+
+if (server) {
+  server.close();
+}
 
 console.log('\n====================================================');
 console.log(`📊 Test Results: ${passedTests}/${totalTests} Tests Passed`);

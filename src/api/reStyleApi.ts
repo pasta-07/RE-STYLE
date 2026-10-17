@@ -10,15 +10,18 @@ export interface StashFabricItem {
   name: string;
   imageUrl: string;
   material: string;
+  clothingType?: string;
   materialLabel?: string;
   dominantColor: string;
   secondaryColors?: string[];
   pattern: string;
+  texture?: string;
   dimensions: {
     length: number;
     width: number;
     unit: 'cm' | 'in';
   };
+  dimensionsText?: string;
   shape?: 'rectangular' | 'strip' | 'irregular' | 'circular' | 'offcut';
   totalQuantity: number;
   reservedQuantity: number;
@@ -149,8 +152,12 @@ export interface RecommendedProject {
   consumptionEstimate: string;
   leftoverEstimate: string;
   suitabilityReason: string;
+  tailoredBadge?: string;
   explanations: string[];
   imageUrl: string;
+  isGenericReference?: boolean;
+  imageLabel?: string;
+  imageNote?: string;
   requiredTools: string[];
   optionalTools?: string[];
   materialsNeeded: Array<{ name: string; required?: boolean }>;

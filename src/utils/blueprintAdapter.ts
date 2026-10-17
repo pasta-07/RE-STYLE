@@ -51,7 +51,7 @@ const CURATED_PRODUCT_IMAGES: Record<ProductItemType, Partial<Record<ColorFamily
     ],
     'green-olive': [
       '/blueprints/olive-chore-jacket.jpg',
-      '/blueprints/sage-lace-overlay-top.jpg',
+      '/blueprints/lace-bolero.jpg',
     ],
     'red-terracotta': [
       '/blueprints/terracotta-corduroy-overshirt.jpg',
@@ -474,23 +474,12 @@ export function generateDynamicConceptImageUrl(
   fabric: FabricSample,
   index: number = 0
 ): string {
-  const cleanTitle = concept.title || 'Sustainable Fashion Garment';
-  const cleanFabric = fabric.material || fabric.name || 'sustainable textile remnant';
-  const cleanColor = fabric.dominantColor ? `${fabric.dominantColor} ` : '';
-  const cleanPattern = fabric.pattern || fabric.weave ? `with ${fabric.pattern || fabric.weave} structure, ` : '';
-  const cleanSubtitle = concept.subtitle ? `${concept.subtitle}. ` : '';
-  const cleanDesc = concept.description ? `${concept.description.slice(0, 140)}. ` : '';
-
-  const prompt = `Award-winning professional editorial fashion studio catalog photography of ${cleanTitle}, ${cleanSubtitle}${cleanDesc}Handcrafted from authentic ${cleanColor}${cleanFabric} remnant ${cleanPattern}tactile woven textile surface details visible in crisp clarity, zero-waste sustainable bespoke circular design, soft directional atelier studio daylighting, clean minimalist boutique backdrop, 8k resolution, photorealistic, sharp focus, magazine lookbook, no text, no watermark`;
-
-  let hash = 0;
-  const str = `${cleanTitle}-${cleanSubtitle}-${cleanFabric}-${cleanColor}-${index}`;
-  for (let i = 0; i < str.length; i++) {
-    hash = ((hash << 5) - hash) + str.charCodeAt(i);
-    hash |= 0;
+  // If concept already has a true photo-conditioned preview, return it
+  if (concept.imageUrl && (concept.imageUrl.startsWith('data:image') || concept.imageUrl.includes('/api/previews/'))) {
+    return concept.imageUrl;
   }
-  const seed = Math.abs(hash) % 100000;
-  return `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=800&height=600&nologo=true&seed=${seed}&model=flux`;
+  // Return neutral craft asset matching fabric archetype
+  return pickCuratedCatalogImage(concept as DesignConcept, fabric, index);
 }
 
 /**
@@ -565,7 +554,7 @@ export function pickCuratedCatalogImage(concept: DesignConcept | any, fabric: Fa
   // 1. Delicate Lace / Guipure
   if (archetype === 'lace-sheer') {
     if (/camisole|overlay|crop top|top|bustier|tank|slip|bodice|shirt/i.test(text)) {
-      return '/blueprints/sage-lace-overlay-top.jpg';
+      return '/blueprints/lace-bolero.jpg';
     }
     if (/pouch|potli|wristlet|reticule|minaudiere|bag|purse|clutch|carry/i.test(text)) {
       return '/blueprints/green-lace-pouch.jpg';
@@ -577,14 +566,12 @@ export function pickCuratedCatalogImage(concept: DesignConcept | any, fabric: Fa
       return '/blueprints/lace-bolero.jpg';
     }
     if (/sheath|dress|gown|shift|overlay|skirt|evening/i.test(text)) {
-      return '/blueprints/sage-lace-french-evening-dress-1.jpg';
+      return '/blueprints/lace-bolero.jpg';
     }
     const laceImages = [
-      '/blueprints/sage-lace-overlay-top.jpg',
-      '/blueprints/green-lace-pouch.jpg',
       '/blueprints/lace-collar.jpg',
-      '/blueprints/lace-bolero.jpg',
-      '/blueprints/sage-lace-french-evening-dress-1.jpg'
+      '/blueprints/green-lace-pouch.jpg',
+      '/blueprints/lace-bolero.jpg'
     ];
     return laceImages[index % laceImages.length];
   }
@@ -745,7 +732,6 @@ export function pickCuratedCatalogImage(concept: DesignConcept | any, fabric: Fa
 
   if (rawColor === 'green-olive' || rawArch === 'lace-sheer') {
     const greenImages = [
-      '/blueprints/sage-lace-overlay-top.jpg',
       '/blueprints/green-lace-pouch.jpg',
       '/blueprints/lace-collar.jpg',
       '/blueprints/lace-bolero.jpg',
@@ -877,6 +863,70 @@ function resolveTimeEstimate(difficulty: 'Beginner' | 'Intermediate' | 'Artisan'
   }
 }
 
+export function isImageAssociatedWithFabric(imageUrl: string, fabric: FabricSample): boolean {
+  if (!imageUrl || typeof imageUrl !== 'string') return false;
+  const img = imageUrl.toLowerCase();
+  const userColor = (fabric.dominantColor || fabric.colorFamily || '').toLowerCase();
+  const mat = (fabric.material || fabric.name || '').toLowerCase();
+
+  // If truly photo-conditioned image from preview API
+  if (img.startsWith('data:image') || img.includes('/api/previews/')) {
+    return true;
+  }
+
+  const isBlue = /blue|indigo|cobalt|navy|cyan|sapphire|denim/i.test(userColor);
+  const isGreen = /green|olive|sage|emerald|forest|mint/i.test(userColor);
+  const isPurple = /purple|violet|magenta|plum|lavender|amethyst/i.test(userColor);
+  const isYellow = /yellow|gold|mustard|ochre|amber/i.test(userColor);
+  const isRed = /red|terracotta|rust|crimson|burgundy/i.test(userColor);
+  const isNeutral = /white|cream|ivory|ecru|linen|slub/i.test(userColor);
+
+  if (isBlue) {
+    if (img.includes('purple-silk') || img.includes('terracotta-corduroy') || img.includes('yellow-cotton') || img.includes('green-lace') || img.includes('olive') || img.includes('jute')) {
+      return false;
+    }
+    if (img.includes('denim')) return true;
+  }
+
+  if (isGreen) {
+    if (img.includes('purple-silk') || img.includes('terracotta-corduroy') || img.includes('yellow-cotton') || img.includes('denim')) {
+      return false;
+    }
+    if (img.includes('olive') || img.includes('green') || img.includes('sage')) return true;
+  }
+
+  if (isPurple) {
+    if (img.includes('terracotta') || img.includes('yellow-cotton') || img.includes('olive') || img.includes('denim')) {
+      return false;
+    }
+    if (img.includes('purple-silk')) return true;
+  }
+
+  if (isYellow) {
+    if (img.includes('purple-silk') || img.includes('terracotta') || img.includes('olive') || img.includes('denim')) {
+      return false;
+    }
+    if (img.includes('yellow-cotton')) return true;
+  }
+
+  if (isRed) {
+    if (img.includes('purple-silk') || img.includes('yellow-cotton') || img.includes('olive') || img.includes('denim')) {
+      return false;
+    }
+    if (img.includes('terracotta')) return true;
+  }
+
+  if (/lace/i.test(mat) && !img.includes('lace')) return false;
+  if (/jute|burlap/i.test(mat) && !img.includes('jute')) return false;
+  if (/corduroy/i.test(mat) && !img.includes('corduroy')) return false;
+
+  if (img.includes('belgian-slub-linen')) {
+    return isNeutral || /linen|flax|bast/i.test(mat);
+  }
+
+  return false;
+}
+
 export function convertDesignConceptToUpcycleIdea(
   concept: DesignConcept,
   fabric: FabricSample,
@@ -891,6 +941,33 @@ export function convertDesignConceptToUpcycleIdea(
 
   const imageUrl = pickSmartImage(concept, fabric, index);
   const fallbackImageUrl = concept.fallbackImageUrl || pickCuratedCatalogImage(concept, fabric, index);
+
+  const isPhotoConditioned = Boolean(
+    (concept as any).isPhotoConditioned || 
+    (concept as any).is_photo_conditioned || 
+    imageUrl.startsWith('data:image') ||
+    imageUrl.includes('/api/previews/')
+  );
+
+  const isGeneric = Boolean(
+    !isPhotoConditioned && (
+      concept.isGenericReference ?? 
+      (concept as any).is_generic_reference ?? 
+      true
+    )
+  );
+  const imageLabel = isPhotoConditioned
+    ? 'AI Concept • Fabric Conditioned'
+    : (concept.imageLabel || (concept as any).image_label || (
+        isGeneric ? 'Curated Style Reference (Generic Example)' : 'Tailored Style Reference'
+      ));
+  const imageNote = isPhotoConditioned
+    ? 'AI-generated concept preview derived from your uploaded fabric photo. Not a photograph of a finished real garment.'
+    : (concept.imageNote || (concept as any).image_note || (
+        isGeneric 
+          ? `Style reference only; does not depict your exact ${fabric.dominantColor ? fabric.dominantColor + ' ' : ''}${fabric.material || 'fabric'}.`
+          : `Tailored visual reference matching your ${fabric.dominantColor ? fabric.dominantColor + ' ' : ''}${fabric.material || 'fabric'}.`
+      ));
 
   const steps: StepInstruction[] = (concept.steps && concept.steps.length > 0)
     ? concept.steps
@@ -969,6 +1046,9 @@ export function convertDesignConceptToUpcycleIdea(
     image_status: concept.image_status || 'success',
     generation_status: concept.generation_status || 'success',
     fallbackImageUrl,
+    isGenericReference: isGeneric,
+    imageLabel,
+    imageNote,
     matchScore,
     tags: concept.tags && concept.tags.length > 0 ? concept.tags : ['zero-waste', '2026-trend', 'ai-generated', fabric.material.toLowerCase()],
     materialsNeeded,

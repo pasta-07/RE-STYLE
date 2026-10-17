@@ -51,7 +51,11 @@ export interface UpcycleIdea {
     passed: boolean;
     confidence?: string;
     notes: string;
+    isGenericReference?: boolean;
   };
+  isGenericReference?: boolean;
+  imageLabel?: string;
+  imageNote?: string;
   rawConcept?: any;
   cuttingPlan?: {
     patternPieces: Array<{

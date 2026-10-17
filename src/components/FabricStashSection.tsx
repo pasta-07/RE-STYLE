@@ -103,9 +103,9 @@ export const FabricStashSection: React.FC<FabricStashSectionProps> = ({
   const availablePieces = fabrics.filter(f => f.availableQuantity > 0).length;
   const reservedPieces = fabrics.filter(f => f.reservedQuantity > 0).length;
   const totalAreaSqM = fabrics.reduce((acc, f) => {
-    const l = f.dimensions.unit === 'in' ? f.dimensions.length * 2.54 : f.dimensions.length;
-    const w = f.dimensions.unit === 'in' ? f.dimensions.width * 2.54 : f.dimensions.width;
-    return acc + ((l * w * f.availableQuantity) / 10000);
+    const l = f.dimensions?.unit === 'in' ? (f.dimensions?.length || 0) * 2.54 : (f.dimensions?.length || 0);
+    const w = f.dimensions?.unit === 'in' ? (f.dimensions?.width || 0) * 2.54 : (f.dimensions?.width || 0);
+    return acc + ((l * w * (f.availableQuantity || 0)) / 10000);
   }, 0);
 
   const openAddModal = () => {
